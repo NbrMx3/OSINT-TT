@@ -4,7 +4,7 @@ Phase 1 establishes the full-stack foundation for a professional open source int
 
 ## Stack
 
-- `client/`: React, TypeScript, Vite, Tailwind CSS, Axios, React Router, TanStack Query, Lucide React
+- `client/`: React, TypeScript, Vite, Tailwind CSS, shadcn-style UI primitives, Axios, React Router, TanStack Query, Lucide React, Recharts
 - `server/`: Node.js, Express, TypeScript, CORS, dotenv, Helmet, express-rate-limit
 
 ## Requirements
@@ -24,7 +24,9 @@ cd ..\server
 npm install
 ```
 
-The server reads `PORT` and `CLIENT_ORIGIN` from `server/.env`. Copy `server/.env.example` to `server/.env` when starting from a clean checkout.
+The server reads `PORT`, `CLIENT_ORIGIN`, and `DATABASE_URL` from `server/.env`. Copy `server/.env.example` to `server/.env`, then replace the placeholder `DATABASE_URL` with your Neon connection string. Never commit `server/.env`.
+
+The API uses a pooled `pg` client with TLS and verifies the PostgreSQL connection during startup. `GET /api/health` also performs a live `SELECT 1` check and reports `database: "connected"` when Neon is available.
 
 ## Development
 
@@ -42,7 +44,7 @@ cd server
 npm run dev
 ```
 
-The API is available at `http://localhost:5000`; the health check is `GET /api/health`.
+The API is available at `http://localhost:5000`; the health check is `GET /api/health` and the typed dashboard contract is `GET /api/dashboard`.
 
 ## Verification
 

@@ -1,0 +1,8 @@
+import { EmptyState } from "../EmptyState";
+import type { ThreatOverviewPoint } from "../../types/dashboard";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+export function ThreatOverviewChart({ data }: { data: ThreatOverviewPoint[] }) {
+  if (!data.length) return <EmptyState compact title="No threat telemetry" description="Threat intelligence data will populate this overview when sources are connected." />;
+  return <div className="h-[250px] w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}><defs><linearGradient id="criticalGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fb7185" stopOpacity={0.35} /><stop offset="100%" stopColor="#fb7185" stopOpacity={0} /></linearGradient><linearGradient id="highGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fb923c" stopOpacity={0.3} /><stop offset="100%" stopColor="#fb923c" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} /><XAxis axisLine={false} tickLine={false} dataKey="label" tick={{ fill: "#64748b", fontSize: 10 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 10 }} /><Tooltip contentStyle={{ background: "#0b121c", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11 }} /><Area type="monotone" dataKey="critical" name="Critical" stroke="#fb7185" fill="url(#criticalGradient)" strokeWidth={2} /><Area type="monotone" dataKey="high" name="High" stroke="#fb923c" fill="url(#highGradient)" strokeWidth={2} /></AreaChart></ResponsiveContainer></div>;
+}

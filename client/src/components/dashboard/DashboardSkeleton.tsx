@@ -1,0 +1,3 @@
+import { Skeleton } from "../ui/skeleton";
+
+export function DashboardSkeleton() { return <div className="space-y-7" aria-label="Loading dashboard" role="status"><div className="flex justify-between border-b border-white/[0.07] pb-6"><div><Skeleton className="h-3 w-44" /><Skeleton className="mt-3 h-8 w-64" /><Skeleton className="mt-3 h-3 w-96 max-w-full" /></div><Skeleton className="h-4 w-32" /></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 5 }).map((_, index) => <Skeleton className="h-32" key={index} />)}</div><div className="grid gap-4 xl:grid-cols-2"><Skeleton className="h-[340px]" /><Skeleton className="h-[340px]" /></div><span className="sr-only">Loading dashboard data</span></div>; }

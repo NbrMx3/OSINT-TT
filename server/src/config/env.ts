@@ -6,8 +6,15 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
   throw new Error("PORT must be a valid number between 1 and 65535");
 }
 
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required");
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port,
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
+  databaseUrl,
 };
