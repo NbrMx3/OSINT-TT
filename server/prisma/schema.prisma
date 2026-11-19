@@ -65,6 +65,9 @@ enum EntityType {
   PHONE
   WEBSITE
   ORGANIZATION
+  ASN
+  PUBLIC_PROFILE
+  THREAT_INDICATOR
   LOCATION
 }
 
@@ -104,6 +107,7 @@ model Tenant {
   investigations    Investigation[]
   entities          Entity[]
   relationships     Relationship[]
+  graphLayouts      GraphLayout[]
   findings          Finding[]
   intelligenceSources IntelligenceSource[]
   evidence          Evidence[]
@@ -176,6 +180,7 @@ model Investigation {
   targets        InvestigationTarget[]
   entities       Entity[]
   relationships  Relationship[]
+  graphLayouts   GraphLayout[]
   findings       Finding[]
   notes          AnalystNote[]
   reports        Report[]
@@ -250,12 +255,17 @@ model Relationship {
   toEntityId     String
   type           String
   confidence     Float?
+  sourceReferences Json?
+  evidenceQuality Float?
+  corroborationScore Float?
+  freshnessScore Float?
   metadata       Json?
   createdAt      DateTime      @default(now())
   tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   investigation  Investigation? @relation(fields: [investigationId], references: [id], onDelete: SetNull)
   fromEntity     Entity        @relation("RelationshipFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
   toEntity       Entity        @relation("RelationshipTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+  evidence       Evidence[]
   @@index([tenantId])
   @@index([fromEntityId])
   @@index([toEntityId])
@@ -301,6 +311,7 @@ model Evidence {
   id          String       @id @default(cuid())
   tenantId    String
   findingId   String?
+  relationshipId String?
   domainResultId String?
   ipResultId  String?
   emailResultId String?
@@ -316,6 +327,7 @@ model Evidence {
   collectedAt DateTime     @default(now())
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   finding     Finding?     @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  relationship Relationship? @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
   domainResult DomainIntelligenceResult? @relation(fields: [domainResultId], references: [id], onDelete: Cascade)
   ipResult    IpIntelligenceResult? @relation(fields: [ipResultId], references: [id], onDelete: Cascade)
   emailResult EmailIntelligenceResult? @relation(fields: [emailResultId], references: [id], onDelete: Cascade)
@@ -325,6 +337,7 @@ model Evidence {
   threatResult ThreatIntelligenceResult? @relation(fields: [threatResultId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@index([findingId])
+  @@index([relationshipId])
   @@index([domainResultId])
   @@index([ipResultId])
   @@index([emailResultId])
@@ -332,6 +345,21 @@ model Evidence {
   @@index([websiteResultId])
   @@index([socialResultId])
   @@index([threatResultId])
+}
+
+model GraphLayout {
+  id             String        @id @default(cuid())
+  tenantId       String
+  name           String
+  investigationId String?
+  nodes          Json
+  edges          Json
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation  Investigation? @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  @@index([tenantId, updatedAt])
+  @@index([investigationId])
 }
 
 model DomainIntelligenceResult {
