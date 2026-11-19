@@ -14,6 +14,20 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, a { -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { max-width: 100%; }
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }
+img, svg, canvas { max-width: 100%; }
+
+@media (max-width: 639px) {
+  input, select, textarea, button { font-size: 16px; }
+  .react-flow__controls { bottom: 12px; }
+  .react-flow__minimap { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}
 
 .cyber-grid {
   background-image: linear-gradient(rgba(32, 214, 181, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(32, 214, 181, 0.035) 1px, transparent 1px);

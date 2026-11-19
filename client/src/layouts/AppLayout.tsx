@@ -26,6 +26,13 @@ function AppLayout() {
   const searchResults = useMemo(() => allNavigationItems.filter((item) => item.label.toLowerCase().includes(searchTerm.toLowerCase())), [searchTerm]);
 
   useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [mobileOpen]);
+
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setSearchOpen(true); }
     }
@@ -39,11 +46,11 @@ function AppLayout() {
     <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onCollapsedChange={setCollapsed} onClose={() => setMobileOpen(false)} onNavigate={() => setMobileOpen(false)} />
     {mobileOpen && <button aria-label="Close navigation" className="fixed inset-0 z-20 bg-black/70 lg:hidden" onClick={() => setMobileOpen(false)} />}
     <div className={cn("transition-[padding] duration-200", collapsed ? "lg:pl-20" : "lg:pl-72")}>
-      <header className="sticky top-0 z-10 flex h-[68px] items-center justify-between border-b border-white/[0.07] bg-[#080e17]/95 px-4 backdrop-blur sm:px-7">
+      <header className="sticky top-0 z-10 flex h-[68px] items-center justify-between border-b border-white/[0.07] bg-[#080e17]/95 px-3 backdrop-blur sm:px-5 lg:px-7">
         <div className="flex min-w-0 items-center gap-3"><Button aria-label="Open navigation" className="lg:hidden" size="icon" variant="ghost" onClick={() => setMobileOpen(true)}><Menu size={18} /></Button><div className="hidden h-5 w-px bg-white/10 sm:block" /><div className="min-w-0"><div className="flex items-center gap-2 text-[10px] text-slate-600"><span>Workspace</span><span>/</span><span className="truncate text-slate-400">{currentItem?.label ?? "Overview"}</span></div><h1 className="mt-1 truncate text-sm font-semibold text-slate-100">{currentItem?.label ?? "Dashboard overview"}</h1></div></div>
         <div className="flex items-center gap-1.5 sm:gap-3"><Button aria-label="Search workspace" className="hidden gap-3 text-slate-500 sm:flex" size="sm" variant="secondary" onClick={() => setSearchOpen(true)}><Search size={14} /> <span className="w-28 text-left">Search workspace</span><kbd className="rounded border border-white/10 px-1.5 py-0.5 text-[9px] text-slate-600">⌘ K</kbd></Button><Button aria-label="Search workspace" className="sm:hidden" size="icon" variant="ghost" onClick={() => setSearchOpen(true)}><Search size={17} /></Button><Button aria-label="Open notifications" className="relative" size="icon" variant="ghost" onClick={() => setNotificationsOpen(true)}><Bell size={17} /><span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-cyan-400" /></Button><Button aria-label="Help" className="hidden sm:flex" size="icon" variant="ghost"><CircleHelp size={17} /></Button><div className="ml-1 hidden h-6 w-px bg-white/10 md:block" /><button className="hidden items-center gap-2 rounded-md p-1.5 text-left transition hover:bg-white/[0.05] md:flex" onClick={() => navigate("/profile")}><span className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-400/15 text-[10px] font-bold text-cyan-300">AN</span><span><span className="block text-[10px] font-semibold text-slate-300">Analyst</span><span className="block text-[9px] text-slate-600">Workspace</span></span></button></div>
       </header>
-      <main className="min-h-[calc(100vh-4.25rem)] px-4 py-6 sm:px-7 sm:py-8"><Outlet /></main>
+      <main className="min-h-[calc(100vh-4.25rem)] px-3 py-5 sm:px-5 sm:py-7 lg:px-7 lg:py-8"><Outlet /></main>
     </div>
 
     <Dialog open={searchOpen} onOpenChange={setSearchOpen}><DialogContent><DialogHeader><DialogTitle>Search workspace</DialogTitle><DialogDescription>Jump to an intelligence module or workspace view.</DialogDescription></DialogHeader><div className="mt-5"><Input autoFocus placeholder="Search modules..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div><div className="mt-3 max-h-72 space-y-1 overflow-y-auto">{searchResults.length ? searchResults.map((item) => <button className="flex w-full items-center gap-3 rounded-md p-2.5 text-left transition hover:bg-white/[0.05]" key={item.path} onClick={() => goTo(item.path)}><item.icon size={15} className="text-cyan-300" /><span className="flex-1"><span className="block text-xs text-slate-200">{item.label}</span><span className="mt-0.5 block text-[10px] text-slate-600">{item.description}</span></span><span className="text-[9px] text-slate-600">↵</span></button>) : <p className="py-8 text-center text-xs text-slate-600">No matching workspace views.</p>}</div></DialogContent></Dialog>
