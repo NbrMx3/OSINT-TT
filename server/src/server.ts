@@ -4,7 +4,10 @@ import { env } from "./config/env";
 import { prisma } from "./config/prisma";
 
 async function purgeExpiredSocialResults(): Promise<void> {
-  await prisma.socialIntelligenceResult.deleteMany({ where: { expiresAt: { lte: new Date() } } });
+  const cutoff = new Date(Date.now() - env.retentionDays * 24 * 60 * 60 * 1000);
+  await prisma.socialIntelligenceResult.deleteMany({
+    where: { OR: [{ expiresAt: { lte: new Date() } }, { collectedAt: { lte: cutoff } }] },
+  });
 }
 
 async function startServer(): Promise<void> {

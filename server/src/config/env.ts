@@ -30,13 +30,34 @@ if (!encryptionKey || !/^[a-f0-9]{64}$/i.test(encryptionKey)) {
   throw new Error("ENCRYPTION_KEY must be a 64-character hex key");
 }
 
+const clientOrigins = (process.env.CLIENT_ORIGIN ?? "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const requestTimeoutMs = Number.parseInt(process.env.REQUEST_TIMEOUT_MS ?? "15000", 10);
+const retentionDays = Number.parseInt(process.env.DATA_RETENTION_DAYS ?? "30", 10);
+
+if (!clientOrigins.length || clientOrigins.some((origin) => !/^https?:\/\/[^/]+$/i.test(origin))) {
+  throw new Error("CLIENT_ORIGIN must contain one or more comma-separated HTTP(S) origins");
+}
+
+if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1000 || requestTimeoutMs > 120000) {
+  throw new Error("REQUEST_TIMEOUT_MS must be between 1000 and 120000");
+}
+
+if (!Number.isInteger(retentionDays) || retentionDays < 1 || retentionDays > 3650) {
+  throw new Error("DATA_RETENTION_DAYS must be between 1 and 3650");
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port,
-  clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
+  clientOrigins,
   databaseUrl,
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "1d",
   bcryptRounds,
   encryptionKey,
+  requestTimeoutMs,
+  retentionDays,
 };

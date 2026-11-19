@@ -20,6 +20,7 @@ export async function registerUser(input: { name: string; email: string; passwor
   const tenant = await prisma.tenant.create({ data: { name: tenantName, slug: `${slugify(tenantName)}-${crypto.randomBytes(4).toString("hex")}` } });
   const passwordHash = await bcrypt.hash(input.password, env.bcryptRounds);
   const user = await prisma.user.create({ data: { tenantId: tenant.id, roleId: role.id, name: input.name.trim(), email: input.email.toLowerCase(), passwordHash }, include: publicUserInclude });
+  await recordAudit({ tenantId: tenant.id, userId: user.id, action: "AUTH_REGISTERED", entityType: "User", entityId: user.id });
   return { user: toPublicUser(user), token: createAccessToken(user) };
 }
 
@@ -27,6 +28,7 @@ export async function loginUser(input: { email: string; password: string }): Pro
   const user = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() }, include: publicUserInclude });
   if (!user || !user.isActive || !(await bcrypt.compare(input.password, user.passwordHash))) throw new AppError(401, "Invalid email or password", "INVALID_CREDENTIALS");
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  await recordAudit({ tenantId: user.tenantId, userId: user.id, action: "AUTH_LOGIN", entityType: "User", entityId: user.id });
   return { user: toPublicUser(user), token: createAccessToken(user) };
 }
 
@@ -43,6 +45,7 @@ export async function updateProfile(userId: string, tenantId: string, input: { n
 
 export async function revokeTokens(userId: string, tenantId: string): Promise<void> {
   await prisma.user.updateMany({ where: { id: userId, tenantId }, data: { tokenVersion: { increment: 1 } } });
+  await recordAudit({ tenantId, userId, action: "AUTH_LOGOUT", entityType: "User", entityId: userId });
 }
 
 export async function requestPasswordReset(email: string): Promise<string | undefined> {
@@ -59,6 +62,7 @@ export async function resetPassword(rawToken: string, password: string): Promise
   if (!user) throw new AppError(400, "Reset token is invalid or expired", "RESET_TOKEN_INVALID");
   const passwordHash = await bcrypt.hash(password, env.bcryptRounds);
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash, passwordResetTokenHash: null, passwordResetExpiresAt: null, tokenVersion: { increment: 1 } } });
+  await recordAudit({ tenantId: user.tenantId, userId: user.id, action: "AUTH_PASSWORD_RESET", entityType: "User", entityId: user.id });
 }
 
 export async function verifyAccessToken(token: string): Promise<AuthContext> {
@@ -80,3 +84,7 @@ function createAccessToken(user: { id: string; tenantId: string; tokenVersion: n
 function toPublicUser(user: { id: string; tenantId: string; email: string; name: string; role: { name: RoleName } }): PublicUser { return { id: user.id, tenantId: user.tenantId, email: user.email, name: user.name, role: user.role.name }; }
 function hashToken(token: string): string { return crypto.createHash("sha256").update(token).digest("hex"); }
 function slugify(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "workspace"; }
+
+async function recordAudit(input: { tenantId: string; userId: string; action: string; entityType: string; entityId: string }): Promise<void> {
+  await prisma.activityLog.create({ data: input });
+}

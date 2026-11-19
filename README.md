@@ -26,6 +26,8 @@ npm install
 
 The server reads `PORT`, `CLIENT_ORIGIN`, and `DATABASE_URL` from `server/.env`. Copy `server/.env.example` to `server/.env`, then replace the placeholder `DATABASE_URL` with your Neon connection string. Never commit `server/.env`.
 
+`CLIENT_ORIGIN` accepts a comma-separated allowlist of exact browser origins. `REQUEST_TIMEOUT_MS` bounds incoming requests (1-120 seconds), and `DATA_RETENTION_DAYS` controls automatic deletion of expired social intelligence records. In production, use HTTPS origins, a high-entropy `JWT_SECRET`, a random 64-character hexadecimal `ENCRYPTION_KEY`, and `NODE_ENV=production`.
+
 The API uses a pooled `pg` client with TLS and verifies the PostgreSQL connection during startup. `GET /api/health` also performs a live `SELECT 1` check and reports `database: "connected"` when Neon is available.
 
 Phase 3 adds Prisma migrations and seeded roles, httpOnly-cookie authentication, tenant-scoped persistence, password reset flow, profile management, role authorization, and AES-256-GCM encryption for stored API configurations. Use `npm run db:generate`, `npm run db:migrate`, and `npm run db:seed` from `server/` when provisioning a new environment.
@@ -47,6 +49,10 @@ Phase 10 adds the tenant-scoped Intelligence Correlation and Graph Engine at `/g
 Phase 11 adds reporting and analytics. `POST /api/reports` generates a branded PDF from real tenant-scoped investigation records, findings, collection results, graph relationships, evidence, and analyst notes. Reports can be listed and filtered through `GET /api/reports`, downloaded as PDF through `/api/reports/:id/pdf`, exported as JSON or CSV through `/api/reports/:id/export?format=json|csv`, viewed through `/api/reports/:id`, and deleted through `DELETE /api/reports/:id`. The Reports workspace supports generation, search, status filtering, downloads, structured exports, and confirmation-gated deletion. `GET /api/dashboard` now returns database-backed investigation statistics, trends, findings by category, source status, threat distribution, analyst activity, and completion rates. Reports distinguish recorded observations, source attribution, confidence, limitations, and conclusions; unsupported conclusions are not presented as facts.
 
 The optional provider variables are listed in `server/.env.example`. Configure them only in `server/.env`; do not expose or commit provider secrets. `GITHUB_API_TOKEN` is optional for GitHub public profile lookup and search rate limits; Email Intelligence does not use it to search code. Public API availability and permitted use can change, so use current provider documentation for [Have I Been Pwned](https://haveibeenpwned.com/API/v3), [GitHub REST](https://docs.github.com/en/rest/users/users), and [Reddit's API](https://www.reddit.com/dev/api/).
+
+## Production deployment
+
+Build the API with `npm run build` in `server/`, apply migrations with `npm run db:migrate:deploy`, and start it with `npm start`. Render should run the migration command during deploy and expose `GET /api/health` as its health check. Set `DATABASE_URL` to the Neon pooled connection string and configure the production `CLIENT_ORIGIN` to the Vercel deployment origin. Build the client with `npm run build` in `client/` and set `VITE_API_URL` only when the API is hosted on a different origin; same-origin deployments use the Vite `/api` proxy during development.
 
 ## Development
 
