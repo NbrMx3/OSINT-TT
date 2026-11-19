@@ -111,6 +111,8 @@ model Tenant {
   apiConfigurations ApiConfiguration[]
   domainResults     DomainIntelligenceResult[]
   ipResults         IpIntelligenceResult[]
+  emailResults      EmailIntelligenceResult[]
+  usernameResults   UsernameIntelligenceResult[]
 }
 
 model Role {
@@ -176,6 +178,8 @@ model Investigation {
   jobs           InvestigationJob[]
   domainResults  DomainIntelligenceResult[]
   ipResults      IpIntelligenceResult[]
+  emailResults   EmailIntelligenceResult[]
+  usernameResults UsernameIntelligenceResult[]
   @@index([tenantId, status])
   @@index([ownerId])
   @@index([tenantId, category])
@@ -291,6 +295,8 @@ model Evidence {
   findingId   String?
   domainResultId String?
   ipResultId  String?
+  emailResultId String?
+  usernameResultId String?
   sourceUrl   String?
   title       String?
   contentHash String?
@@ -301,10 +307,14 @@ model Evidence {
   finding     Finding?     @relation(fields: [findingId], references: [id], onDelete: SetNull)
   domainResult DomainIntelligenceResult? @relation(fields: [domainResultId], references: [id], onDelete: Cascade)
   ipResult    IpIntelligenceResult? @relation(fields: [ipResultId], references: [id], onDelete: Cascade)
+  emailResult EmailIntelligenceResult? @relation(fields: [emailResultId], references: [id], onDelete: Cascade)
+  usernameResult UsernameIntelligenceResult? @relation(fields: [usernameResultId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@index([findingId])
   @@index([domainResultId])
   @@index([ipResultId])
+  @@index([emailResultId])
+  @@index([usernameResultId])
 }
 
 model DomainIntelligenceResult {
@@ -336,6 +346,38 @@ model IpIntelligenceResult {
   investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
   evidence         Evidence[]
   @@index([tenantId, ip])
+  @@index([investigationId, collectedAt])
+}
+
+model EmailIntelligenceResult {
+  id               String        @id @default(cuid())
+  tenantId         String
+  investigationId  String
+  email            String
+  status           String
+  data             Json
+  sourceReferences Json?
+  collectedAt      DateTime      @default(now())
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  evidence         Evidence[]
+  @@index([tenantId, email])
+  @@index([investigationId, collectedAt])
+}
+
+model UsernameIntelligenceResult {
+  id               String        @id @default(cuid())
+  tenantId         String
+  investigationId  String
+  username         String
+  status           String
+  data             Json
+  sourceReferences Json?
+  collectedAt      DateTime      @default(now())
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  evidence         Evidence[]
+  @@index([tenantId, username])
   @@index([investigationId, collectedAt])
 }
 
