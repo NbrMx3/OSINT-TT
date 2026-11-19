@@ -32,6 +32,8 @@ Phase 3 adds Prisma migrations and seeded roles, httpOnly-cookie authentication,
 
 Phase 4 adds tenant-scoped investigation CRUD, target and module selection, persisted lifecycle status, asynchronous job progress with retry/cancel handling, analyst notes, audit history, saved execution summaries, and explicit empty results until real intelligence modules write findings. Investigation endpoints are under `/api/investigations`.
 
+Phase 5 adds the tenant-scoped Domain Intelligence Engine. `POST /api/domain/intelligence` validates a public domain and collects RDAP registration data, DNS records (A, AAAA, MX, TXT, NS, CNAME, and DNSSEC), certificate-transparency records from crt.sh, public website metadata, associated IP addresses, and reputation from configured VirusTotal credentials. Results and available-source evidence are persisted in PostgreSQL through Prisma. `GET /api/domain/history` lists saved collections and `GET /api/domain/results/:id` retrieves a result. Every collector has a timeout and source reference; unavailable records are returned as unavailable and are never fabricated.
+
 ## Development
 
 Run each service in its own terminal:
@@ -60,4 +62,4 @@ cd ..\server
 npm run build
 ```
 
-The frontend dashboard calls `/api/health` through the Vite proxy and displays API readiness. Investigation modules are intentionally out of scope for Phase 1.
+The frontend dashboard calls `/api/health` through the Vite proxy and displays API readiness. The Domain Intelligence page is available at `/domain` after authentication.

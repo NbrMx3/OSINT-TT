@@ -1,0 +1,2 @@
+export interface DomainSourceReference { name: string; url: string; status: "available" | "unavailable"; collectedAt: string; }
+export interface DomainCollectionResult { domain: string; overview: Record<string, unknown>; rdap: Record<string, unknown>; dns: Record<string, unknown>; certificates: Record<string, unknown>; website: Record<string, unknown>; reputation: Record<string, unknown>; associatedIps: string[]; sources: DomainSourceReference[]; }

@@ -1,0 +1,6 @@
+export interface DomainSourceReference { name: string; url: string; status: "available" | "unavailable"; collectedAt: string; }
+export interface AvailabilityBlock { available: boolean; error?: string; source?: DomainSourceReference; [key: string]: unknown; }
+export interface DomainCollectionData { domain: string; overview: Record<string, unknown>; rdap: AvailabilityBlock; dns: Record<string, AvailabilityBlock | unknown>; certificates: AvailabilityBlock & { records?: Array<Record<string, unknown>> }; website: AvailabilityBlock; reputation: AvailabilityBlock; associatedIps: string[]; sources: DomainSourceReference[]; }
+export interface DomainEvidence { id: string; sourceUrl: string | null; title: string | null; contentHash: string | null; collectedAt: string; }
+export interface DomainResult { id: string; domain: string; status: string; data: DomainCollectionData; sourceReferences: DomainSourceReference[] | null; collectedAt: string; investigation: { id: string; name: string; status: string }; evidence: DomainEvidence[]; }
+export interface DomainHistoryItem { id: string; domain: string; status: string; collectedAt: string; investigation: { id: string; name: string; status: string }; }

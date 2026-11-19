@@ -109,6 +109,7 @@ model Tenant {
   reports           Report[]
   activityLogs      ActivityLog[]
   apiConfigurations ApiConfiguration[]
+  domainResults     DomainIntelligenceResult[]
 }
 
 model Role {
@@ -172,6 +173,7 @@ model Investigation {
   reports        Report[]
   activityLogs   ActivityLog[]
   jobs           InvestigationJob[]
+  domainResults  DomainIntelligenceResult[]
   @@index([tenantId, status])
   @@index([ownerId])
   @@index([tenantId, category])
@@ -285,6 +287,7 @@ model Evidence {
   id          String       @id @default(cuid())
   tenantId    String
   findingId   String?
+  domainResultId String?
   sourceUrl   String?
   title       String?
   contentHash String?
@@ -293,8 +296,26 @@ model Evidence {
   collectedAt DateTime     @default(now())
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   finding     Finding?     @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  domainResult DomainIntelligenceResult? @relation(fields: [domainResultId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@index([findingId])
+  @@index([domainResultId])
+}
+
+model DomainIntelligenceResult {
+  id              String        @id @default(cuid())
+  tenantId        String
+  investigationId String
+  domain          String
+  status          String
+  data            Json
+  sourceReferences Json?
+  collectedAt     DateTime      @default(now())
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  evidence        Evidence[]
+  @@index([tenantId, domain])
+  @@index([investigationId, collectedAt])
 }
 
 model AnalystNote {
