@@ -12,9 +12,24 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL is required");
 }
 
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret || jwtSecret.length < 32) {
+  throw new Error("JWT_SECRET must be at least 32 characters");
+}
+
+const bcryptRounds = Number.parseInt(process.env.BCRYPT_ROUNDS ?? "12", 10);
+
+if (!Number.isInteger(bcryptRounds) || bcryptRounds < 10 || bcryptRounds > 15) {
+  throw new Error("BCRYPT_ROUNDS must be an integer between 10 and 15");
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port,
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
   databaseUrl,
+  jwtSecret,
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "1d",
+  bcryptRounds,
 };

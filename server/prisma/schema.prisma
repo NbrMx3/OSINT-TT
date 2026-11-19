@@ -1,0 +1,308 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMINISTRATOR
+  ANALYST
+  INVESTIGATOR
+  READ_ONLY
+}
+
+enum InvestigationStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum TargetType {
+  EMAIL
+  USERNAME
+  DOMAIN
+  IP
+  PHONE
+  WEBSITE
+  PERSON
+}
+
+enum EntityType {
+  PERSON
+  EMAIL
+  USERNAME
+  DOMAIN
+  IP
+  PHONE
+  WEBSITE
+  ORGANIZATION
+  LOCATION
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FindingStatus {
+  OPEN
+  REVIEWED
+  RESOLVED
+}
+
+enum SourceStatus {
+  OPERATIONAL
+  SYNCING
+  DEGRADED
+  OFFLINE
+}
+
+enum ReportStatus {
+  DRAFT
+  FINAL
+  ARCHIVED
+}
+
+model Tenant {
+  id                String              @id @default(cuid())
+  name              String
+  slug              String              @unique
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  users             User[]
+  investigations    Investigation[]
+  entities          Entity[]
+  relationships     Relationship[]
+  findings          Finding[]
+  intelligenceSources IntelligenceSource[]
+  evidence          Evidence[]
+  analystNotes      AnalystNote[]
+  reports           Report[]
+  activityLogs      ActivityLog[]
+  apiConfigurations ApiConfiguration[]
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  name      RoleName @unique
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+model User {
+  id                    String           @id @default(cuid())
+  tenantId              String
+  roleId                String
+  email                 String           @unique
+  name                  String
+  passwordHash          String
+  isActive              Boolean          @default(true)
+  tokenVersion          Int              @default(0)
+  passwordResetTokenHash String?         @unique
+  passwordResetExpiresAt DateTime?
+  lastLoginAt           DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  tenant                Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role                  Role             @relation(fields: [roleId], references: [id])
+  ownedInvestigations   Investigation[]  @relation("InvestigationOwner")
+  createdFindings       Finding[]       @relation("FindingCreator")
+  analystNotes          AnalystNote[]
+  authoredReports       Report[]         @relation("ReportAuthor")
+  activityLogs          ActivityLog[]
+  apiConfigurations     ApiConfiguration[] @relation("ApiConfigurationOwner")
+  @@index([tenantId])
+}
+
+model Investigation {
+  id          String              @id @default(cuid())
+  tenantId    String
+  ownerId     String
+  name        String
+  description String?
+  status      InvestigationStatus @default(ACTIVE)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner       User                @relation("InvestigationOwner", fields: [ownerId], references: [id])
+  targets     InvestigationTarget[]
+  entities    Entity[]
+  relationships Relationship[]
+  findings    Finding[]
+  notes       AnalystNote[]
+  reports     Report[]
+  activityLogs ActivityLog[]
+  @@index([tenantId, status])
+  @@index([ownerId])
+}
+
+model InvestigationTarget {
+  id             String         @id @default(cuid())
+  investigationId String
+  type           TargetType
+  value          String
+  label          String?
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  investigation  Investigation  @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  @@unique([investigationId, type, value])
+  @@index([investigationId])
+}
+
+model Entity {
+  id             String          @id @default(cuid())
+  tenantId       String
+  investigationId String?
+  type           EntityType
+  value          String
+  name           String?
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation  Investigation?  @relation(fields: [investigationId], references: [id], onDelete: SetNull)
+  relationshipsFrom Relationship[] @relation("RelationshipFrom")
+  relationshipsTo   Relationship[] @relation("RelationshipTo")
+  findings       Finding[]
+  @@index([tenantId, type])
+  @@index([investigationId])
+}
+
+model Relationship {
+  id             String        @id @default(cuid())
+  tenantId       String
+  investigationId String?
+  fromEntityId   String
+  toEntityId     String
+  type           String
+  confidence     Float?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation  Investigation? @relation(fields: [investigationId], references: [id], onDelete: SetNull)
+  fromEntity     Entity        @relation("RelationshipFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+  toEntity       Entity        @relation("RelationshipTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+  @@index([tenantId])
+  @@index([fromEntityId])
+  @@index([toEntityId])
+}
+
+model Finding {
+  id             String          @id @default(cuid())
+  tenantId       String
+  investigationId String?
+  entityId       String?
+  createdById     String?
+  title          String
+  description    String?
+  severity       Severity        @default(MEDIUM)
+  status         FindingStatus   @default(OPEN)
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation  Investigation? @relation(fields: [investigationId], references: [id], onDelete: SetNull)
+  entity         Entity?        @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  createdBy      User?           @relation("FindingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  evidence       Evidence[]
+  @@index([tenantId, severity])
+  @@index([investigationId])
+}
+
+model IntelligenceSource {
+  id          String       @id @default(cuid())
+  tenantId    String
+  name        String
+  type        String
+  status      SourceStatus @default(OFFLINE)
+  lastSyncAt  DateTime?
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@index([tenantId, status])
+}
+
+model Evidence {
+  id          String       @id @default(cuid())
+  tenantId    String
+  findingId   String?
+  sourceUrl   String?
+  title       String?
+  contentHash String?
+  storageKey  String?
+  metadata    Json?
+  collectedAt DateTime     @default(now())
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  finding     Finding?     @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  @@index([tenantId])
+  @@index([findingId])
+}
+
+model AnalystNote {
+  id             String        @id @default(cuid())
+  tenantId       String
+  investigationId String
+  authorId       String
+  content        String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation  Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  author         User          @relation(fields: [authorId], references: [id])
+  @@index([tenantId, investigationId])
+}
+
+model Report {
+  id             String        @id @default(cuid())
+  tenantId       String
+  investigationId String?
+  authorId       String
+  title          String
+  content        Json?
+  status         ReportStatus  @default(DRAFT)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation  Investigation? @relation(fields: [investigationId], references: [id], onDelete: SetNull)
+  author         User          @relation("ReportAuthor", fields: [authorId], references: [id])
+  @@index([tenantId, status])
+}
+
+model ActivityLog {
+  id             String        @id @default(cuid())
+  tenantId       String
+  userId         String?
+  investigationId String?
+  action         String
+  entityType     String?
+  entityId       String?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  investigation  Investigation? @relation(fields: [investigationId], references: [id], onDelete: SetNull)
+  @@index([tenantId, createdAt])
+  @@index([investigationId])
+}
+
+model ApiConfiguration {
+  id            String   @id @default(cuid())
+  tenantId      String
+  ownerId       String?
+  name          String
+  provider      String
+  encryptedConfig String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner         User?    @relation("ApiConfigurationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  @@index([tenantId, provider])
+}
