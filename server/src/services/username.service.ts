@@ -29,8 +29,8 @@ export async function investigateUsername(input: { username: string; tenantId: s
   await prisma.investigation.update({ where: { id: investigation.id }, data: { status: InvestigationStatus.RUNNING, progress: 10, startedAt: new Date(), failureReason: null } });
   try {
     const [github, reddit] = await Promise.all([
-      input.platforms.includes("github") ? lookupGithub(username) : notRequested("GitHub public profile"),
-      input.platforms.includes("reddit") ? lookupReddit(username) : notRequested("Reddit public profile"),
+      input.platforms.includes("github") ? collectGithubProfile(username) : notRequested("GitHub public profile"),
+      input.platforms.includes("reddit") ? collectRedditProfile(username) : notRequested("Reddit public profile"),
     ]);
     const collectedAt = new Date().toISOString();
     const profiles = [...github.profiles, ...reddit.profiles];
@@ -68,14 +68,14 @@ export async function listUsernameHistory(tenantId: string, value?: string) {
   return prisma.usernameIntelligenceResult.findMany({ where: { tenantId, ...(username ? { username } : {}) }, select: { id: true, username: true, status: true, collectedAt: true, investigation: { select: { id: true, name: true, status: true } } }, orderBy: { collectedAt: "desc" }, take: 50 });
 }
 
-async function lookupGithub(username: string) {
+export async function collectGithubProfile(username: string, useToken = true) {
   const collectedAt = new Date().toISOString();
   const profileUrl = `https://github.com/${encodeURIComponent(username)}`;
   const apiUrl = `https://api.github.com/users/${encodeURIComponent(username)}`;
   const headers: Record<string, string> = { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "OSINT-X/1.0" };
-  if (process.env.GITHUB_API_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_API_TOKEN}`;
+  if (useToken && process.env.GITHUB_API_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_API_TOKEN}`;
   try {
-    const response = await fetch(apiUrl, { headers, signal: AbortSignal.timeout(8000) });
+    const response = await fetch(apiUrl, { headers, redirect: "error", signal: AbortSignal.timeout(8000) });
     if (response.status === 404) return searchGithubUsers(username, headers, collectedAt);
     if (!response.ok) throw new Error(`GitHub returned HTTP ${response.status}`);
     const user = await response.json() as Record<string, unknown>;
@@ -93,7 +93,7 @@ async function searchGithubUsers(username: string, headers: Record<string, strin
   const searchUrl = `https://github.com/search?q=${encodeURIComponent(username)}&type=users`;
   const apiUrl = `https://api.github.com/search/users?q=${encodeURIComponent(username)}&per_page=10`;
   try {
-    const response = await fetch(apiUrl, { headers, signal: AbortSignal.timeout(8000) });
+    const response = await fetch(apiUrl, { headers, redirect: "error", signal: AbortSignal.timeout(8000) });
     if (!response.ok) throw new Error(`GitHub user search returned HTTP ${response.status}`);
     const payload = await response.json() as { items?: Array<Record<string, unknown>> };
     const profiles = (payload.items ?? []).map((user) => {
@@ -109,19 +109,20 @@ async function searchGithubUsers(username: string, headers: Record<string, strin
   }
 }
 
-async function lookupReddit(username: string) {
+export async function collectRedditProfile(username: string) {
   const collectedAt = new Date().toISOString();
   const profileUrl = `https://www.reddit.com/user/${encodeURIComponent(username)}/`;
   const clientId = process.env.REDDIT_CLIENT_ID;
   const clientSecret = process.env.REDDIT_CLIENT_SECRET;
   const userAgent = process.env.REDDIT_USER_AGENT;
+  if (process.env.REDDIT_DATA_API_APPROVED !== "true") return { profiles: [] as Array<Record<string, unknown>>, source: { name: "Reddit public profile API", url: profileUrl, status: "unavailable" as const, collectedAt, detail: "Reddit API access is disabled until the application has confirmed current written approval and terms-compliant use." } };
   if (!clientId || !clientSecret || !userAgent) return { profiles: [] as Array<Record<string, unknown>>, source: { name: "Reddit public profile API", url: profileUrl, status: "unavailable" as const, collectedAt, detail: "Reddit OAuth app credentials and a registered user agent are not configured." } };
   try {
-    const tokenResponse = await fetch("https://www.reddit.com/api/v1/access_token", { method: "POST", headers: { authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`, "content-type": "application/x-www-form-urlencoded", "user-agent": userAgent }, body: new URLSearchParams({ grant_type: "client_credentials" }), signal: AbortSignal.timeout(8000) });
+    const tokenResponse = await fetch("https://www.reddit.com/api/v1/access_token", { method: "POST", redirect: "error", headers: { authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`, "content-type": "application/x-www-form-urlencoded", "user-agent": userAgent }, body: new URLSearchParams({ grant_type: "client_credentials" }), signal: AbortSignal.timeout(8000) });
     if (!tokenResponse.ok) throw new Error(`Reddit OAuth returned HTTP ${tokenResponse.status}`);
     const tokenData = await tokenResponse.json() as { access_token?: string };
     if (!tokenData.access_token) throw new Error("Reddit OAuth did not return an access token");
-    const response = await fetch(`https://oauth.reddit.com/user/${encodeURIComponent(username)}/about`, { headers: { authorization: `Bearer ${tokenData.access_token}`, "user-agent": userAgent, accept: "application/json" }, signal: AbortSignal.timeout(8000) });
+    const response = await fetch(`https://oauth.reddit.com/user/${encodeURIComponent(username)}/about`, { redirect: "error", headers: { authorization: `Bearer ${tokenData.access_token}`, "user-agent": userAgent, accept: "application/json" }, signal: AbortSignal.timeout(8000) });
     if (response.status === 404) return { profiles: [] as Array<Record<string, unknown>>, source: { name: "Reddit public profile API", url: profileUrl, status: "available" as const, collectedAt, detail: "Reddit returned no public profile for this handle." } };
     if (!response.ok) throw new Error(`Reddit profile API returned HTTP ${response.status}`);
     const payload = await response.json() as { data?: Record<string, unknown> };

@@ -32,6 +32,7 @@ enum InvestigationCategory {
   EMAIL
   USERNAME
   WEBSITE
+  SOCIAL
   THREAT
   GENERAL
 }
@@ -51,6 +52,7 @@ enum TargetType {
   IP
   PHONE
   WEBSITE
+  HASH
   PERSON
 }
 
@@ -113,6 +115,9 @@ model Tenant {
   ipResults         IpIntelligenceResult[]
   emailResults      EmailIntelligenceResult[]
   usernameResults   UsernameIntelligenceResult[]
+  websiteResults    WebsiteIntelligenceResult[]
+  socialResults     SocialIntelligenceResult[]
+  threatResults     ThreatIntelligenceResult[]
 }
 
 model Role {
@@ -180,6 +185,9 @@ model Investigation {
   ipResults      IpIntelligenceResult[]
   emailResults   EmailIntelligenceResult[]
   usernameResults UsernameIntelligenceResult[]
+  websiteResults  WebsiteIntelligenceResult[]
+  socialResults   SocialIntelligenceResult[]
+  threatResults   ThreatIntelligenceResult[]
   @@index([tenantId, status])
   @@index([ownerId])
   @@index([tenantId, category])
@@ -297,6 +305,9 @@ model Evidence {
   ipResultId  String?
   emailResultId String?
   usernameResultId String?
+  websiteResultId String?
+  socialResultId String?
+  threatResultId String?
   sourceUrl   String?
   title       String?
   contentHash String?
@@ -309,12 +320,18 @@ model Evidence {
   ipResult    IpIntelligenceResult? @relation(fields: [ipResultId], references: [id], onDelete: Cascade)
   emailResult EmailIntelligenceResult? @relation(fields: [emailResultId], references: [id], onDelete: Cascade)
   usernameResult UsernameIntelligenceResult? @relation(fields: [usernameResultId], references: [id], onDelete: Cascade)
+  websiteResult WebsiteIntelligenceResult? @relation(fields: [websiteResultId], references: [id], onDelete: Cascade)
+  socialResult SocialIntelligenceResult? @relation(fields: [socialResultId], references: [id], onDelete: Cascade)
+  threatResult ThreatIntelligenceResult? @relation(fields: [threatResultId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@index([findingId])
   @@index([domainResultId])
   @@index([ipResultId])
   @@index([emailResultId])
   @@index([usernameResultId])
+  @@index([websiteResultId])
+  @@index([socialResultId])
+  @@index([threatResultId])
 }
 
 model DomainIntelligenceResult {
@@ -378,6 +395,58 @@ model UsernameIntelligenceResult {
   investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
   evidence         Evidence[]
   @@index([tenantId, username])
+  @@index([investigationId, collectedAt])
+}
+
+model WebsiteIntelligenceResult {
+  id               String        @id @default(cuid())
+  tenantId         String
+  investigationId  String
+  url              String
+  status           String
+  data             Json
+  sourceReferences Json?
+  collectedAt      DateTime      @default(now())
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  evidence         Evidence[]
+  @@index([tenantId, url])
+  @@index([investigationId, collectedAt])
+}
+
+model SocialIntelligenceResult {
+  id               String        @id @default(cuid())
+  tenantId         String
+  investigationId  String
+  username         String
+  status           String
+  data             Json
+  sourceReferences Json?
+  collectedAt      DateTime      @default(now())
+  expiresAt        DateTime
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  evidence         Evidence[]
+  @@index([tenantId, username])
+  @@index([investigationId, collectedAt])
+  @@index([expiresAt])
+}
+
+model ThreatIntelligenceResult {
+  id               String        @id @default(cuid())
+  tenantId         String
+  investigationId  String
+  indicator        String
+  indicatorType    String
+  status           String
+  data             Json
+  sourceReferences Json?
+  collectedAt      DateTime      @default(now())
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  evidence         Evidence[]
+  @@index([tenantId, indicator])
+  @@index([tenantId, indicatorType])
   @@index([investigationId, collectedAt])
 }
 

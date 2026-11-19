@@ -43,3 +43,5 @@ function matchTag(html: string, tag: string): string | null { const match = html
 function matchMeta(html: string, name: string): string | null { const match = html.match(new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']*)["']`, "i")) ?? html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+name=["']${name}["']`, "i")); return match?.[1]?.trim().slice(0, 500) ?? null; }
 function matchCanonical(html: string): string | null { return html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i)?.[1] ?? null; }
 function hashContent(value: unknown): string { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
+
+export { collectDomainReputation };
