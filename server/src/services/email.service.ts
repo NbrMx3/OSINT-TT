@@ -6,7 +6,7 @@ import { AppError } from "../utils/appError";
 import { collectRdap } from "./rdap.service";
 import { collectEmailDns } from "./email-dns.service";
 
-type SourceStatus = "available" | "unavailable" | "not_requested";
+type SourceStatus = "available" | "unavailable" | "not_requested" | "manual";
 export interface EmailSourceReference { name: string; url: string; status: SourceStatus; collectedAt: string; detail?: string; }
 
 export function normalizeEmail(value: string): { email: string; domain: string } {
@@ -88,20 +88,10 @@ async function checkBreachExposure(email: string, requested: boolean) {
   }
 }
 
-async function searchPublicEmailReferences(email: string, requested: boolean) {
+function searchPublicEmailReferences(email: string, requested: boolean) {
   const collectedAt = new Date().toISOString();
-  const searchUrl = `https://github.com/search?q=${encodeURIComponent(`"${email}"`)}&type=code`;
-  const base = { name: "GitHub public code search", url: searchUrl, collectedAt };
-  if (!requested) return { checked: false, available: false, references: [] as unknown[], error: "Not requested", source: { ...base, status: "not_requested" as const } };
-  if (!process.env.GITHUB_API_TOKEN) return { checked: true, available: false, references: [] as unknown[], error: "GITHUB_API_TOKEN is not configured; GitHub code search requires an authenticated API token", source: { ...base, status: "unavailable" as const } };
-  const apiUrl = `https://api.github.com/search/code?q=${encodeURIComponent(`"${email}"`)}&per_page=10`;
-  try {
-    const response = await fetch(apiUrl, { headers: { authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "OSINT-X/1.0" }, signal: AbortSignal.timeout(8000) });
-    if (!response.ok) throw new Error(`GitHub code search returned HTTP ${response.status}`);
-    const payload = await response.json() as { items?: Array<{ repository?: { full_name?: string; html_url?: string }; path?: string; html_url?: string }> };
-    const references = (payload.items ?? []).map((item) => ({ repository: item.repository?.full_name ?? null, repositoryUrl: item.repository?.html_url ?? null, path: item.path ?? null, url: item.html_url ?? null }));
-    return { checked: true, available: true, references, source: { ...base, status: "available" as const } };
-  } catch (error) {
-    return { checked: true, available: false, references: [] as unknown[], error: error instanceof Error ? error.message : "GitHub code search unavailable", source: { ...base, status: "unavailable" as const } };
-  }
+  const searchUrl = `https://grep.app/search?q=${encodeURIComponent(email)}`;
+  const base = { name: "Grep.app public code index (user-initiated)", url: requested ? searchUrl : "", collectedAt };
+  if (!requested) return { checked: false, available: false, references: [] as unknown[], searchUrl: "", error: "Not requested", source: { ...base, status: "not_requested" as const } };
+  return { checked: true, available: false, references: [] as unknown[], searchUrl, error: "Search is user-initiated; OSINT-X does not call or scrape this source.", source: { ...base, status: "manual" as const, detail: "Open the public index directly to run the search." } };
 }

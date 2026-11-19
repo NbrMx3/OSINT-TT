@@ -1,4 +1,4 @@
-export interface IntelligenceSource { name: string; url: string; status: "available" | "unavailable" | "not_requested"; collectedAt: string; detail?: string; }
+export interface IntelligenceSource { name: string; url: string; status: "available" | "unavailable" | "not_requested" | "manual"; collectedAt: string; detail?: string; }
 export interface EmailDnsRecord<T> { available: boolean; values: T[]; error?: string; }
 export interface EmailCollectionData {
   email: string;
@@ -12,7 +12,7 @@ export interface EmailCollectionData {
   };
   registration: { available: boolean; data: Record<string, unknown> | null; error?: string | null };
   breachExposure: { checked: boolean; available: boolean; breaches: Array<Record<string, unknown>>; error?: string | null };
-  publicReferences: { checked: boolean; available: boolean; references: Array<{ repository?: string | null; repositoryUrl?: string | null; path?: string | null; url?: string | null }>; error?: string | null };
+  publicReferences: { checked: boolean; available: boolean; references: Array<{ repository?: string | null; repositoryUrl?: string | null; path?: string | null; url?: string | null }>; searchUrl?: string; error?: string | null };
   sources: IntelligenceSource[];
 }
 export interface EmailResult { id: string; email: string; status: string; data: EmailCollectionData; sourceReferences: IntelligenceSource[] | null; collectedAt: string; investigation: { id: string; name: string; status: string }; }
