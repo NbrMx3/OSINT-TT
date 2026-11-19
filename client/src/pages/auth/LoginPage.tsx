@@ -4,7 +4,7 @@ import { ArrowRight, LoaderCircle } from "lucide-react";
 import { AuthShell } from "../../components/auth/AuthShell";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 import { getApiErrorMessage } from "../../utils/errors";
 
 function LoginPage() {

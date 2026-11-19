@@ -24,6 +24,12 @@ if (!Number.isInteger(bcryptRounds) || bcryptRounds < 10 || bcryptRounds > 15) {
   throw new Error("BCRYPT_ROUNDS must be an integer between 10 and 15");
 }
 
+const encryptionKey = process.env.ENCRYPTION_KEY;
+
+if (!encryptionKey || !/^[a-f0-9]{64}$/i.test(encryptionKey)) {
+  throw new Error("ENCRYPTION_KEY must be a 64-character hex key");
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port,
@@ -32,4 +38,5 @@ export const env = {
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "1d",
   bcryptRounds,
+  encryptionKey,
 };

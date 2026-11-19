@@ -1,0 +1,15 @@
+import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, ArrowRight, CheckCircle2, LoaderCircle } from "lucide-react";
+import { AuthShell } from "../../components/auth/AuthShell";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { requestPasswordReset } from "../../services/authService";
+import { getApiErrorMessage } from "../../utils/errors";
+
+function ForgotPasswordPage() {
+  const [email, setEmail] = useState(""); const [message, setMessage] = useState(""); const [resetToken, setResetToken] = useState(""); const [error, setError] = useState(""); const [pending, setPending] = useState(false);
+  async function submit(event: FormEvent) { event.preventDefault(); setPending(true); setError(""); try { const result = await requestPasswordReset(email); setMessage(result.message); setResetToken(result.resetToken ?? ""); } catch (reason) { setError(getApiErrorMessage(reason, "Unable to prepare password reset.")); } finally { setPending(false); } }
+  return <AuthShell eyebrow="Account recovery" title="Reset your password." description="We’ll prepare a secure reset flow for your OSINT-X account.">{message ? <div className="space-y-5"><div className="rounded-md border border-cyan-400/20 bg-cyan-400/[0.06] p-4"><CheckCircle2 className="text-cyan-300" size={20} /><p className="mt-3 text-sm font-medium text-slate-200">Check your recovery channel</p><p className="mt-2 text-xs leading-5 text-slate-500">{message}</p></div>{resetToken && <div className="rounded-md border border-orange-400/20 bg-orange-400/[0.06] p-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-orange-200">Development reset token</p><p className="mt-2 break-all font-mono text-[10px] text-orange-100">{resetToken}</p><Link className="mt-3 inline-flex text-[10px] font-medium text-orange-200 hover:text-orange-100" to={`/reset-password?token=${resetToken}`}>Continue to reset <ArrowRight size={12} className="ml-1" /></Link></div>}<Link className="inline-flex items-center gap-2 text-xs font-medium text-cyan-300" to="/login"><ArrowLeft size={13} /> Back to sign in</Link></div> : <form className="space-y-4" onSubmit={submit}><label className="block space-y-2"><span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Work email</span><Input autoComplete="email" placeholder="analyst@organization.com" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>{error && <p className="rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-3 py-2.5 text-xs text-rose-200">{error}</p>}<Button className="w-full" disabled={pending} type="submit">{pending ? <LoaderCircle className="animate-spin" size={15} /> : <ArrowRight size={15} />} {pending ? "Preparing reset..." : "Continue"}</Button><p className="pt-4 text-center text-xs text-slate-600"><Link className="inline-flex items-center gap-2 text-cyan-300" to="/login"><ArrowLeft size={13} /> Back to sign in</Link></p></form>}</AuthShell>;
+}
+export default ForgotPasswordPage;

@@ -5,7 +5,7 @@ Phase 1 establishes the full-stack foundation for a professional open source int
 ## Stack
 
 - `client/`: React, TypeScript, Vite, Tailwind CSS, shadcn-style UI primitives, Axios, React Router, TanStack Query, Lucide React, Recharts
-- `server/`: Node.js, Express, TypeScript, CORS, dotenv, Helmet, express-rate-limit
+- `server/`: Node.js, Express, TypeScript, Prisma ORM, PostgreSQL, JWT, bcrypt, Zod, CORS, dotenv, Helmet, express-rate-limit
 
 ## Requirements
 
@@ -27,6 +27,8 @@ npm install
 The server reads `PORT`, `CLIENT_ORIGIN`, and `DATABASE_URL` from `server/.env`. Copy `server/.env.example` to `server/.env`, then replace the placeholder `DATABASE_URL` with your Neon connection string. Never commit `server/.env`.
 
 The API uses a pooled `pg` client with TLS and verifies the PostgreSQL connection during startup. `GET /api/health` also performs a live `SELECT 1` check and reports `database: "connected"` when Neon is available.
+
+Phase 3 adds Prisma migrations and seeded roles, httpOnly-cookie authentication, tenant-scoped persistence, password reset flow, profile management, role authorization, and AES-256-GCM encryption for stored API configurations. Use `npm run db:generate`, `npm run db:migrate`, and `npm run db:seed` from `server/` when provisioning a new environment.
 
 ## Development
 
