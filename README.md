@@ -34,6 +34,8 @@ Phase 4 adds tenant-scoped investigation CRUD, target and module selection, pers
 
 Phase 5 adds the tenant-scoped Domain Intelligence Engine. `POST /api/domain/intelligence` validates a public domain and collects RDAP registration data, DNS records (A, AAAA, MX, TXT, NS, CNAME, and DNSSEC), certificate-transparency records from crt.sh, public website metadata, associated IP addresses, and reputation from configured VirusTotal credentials. Results and available-source evidence are persisted in PostgreSQL through Prisma. `GET /api/domain/history` lists saved collections and `GET /api/domain/results/:id` retrieves a result. Every collector has a timeout and source reference; unavailable records are returned as unavailable and are never fabricated.
 
+Phase 6 adds tenant-scoped IPv4 and IPv6 intelligence. `POST /api/ip/intelligence`, `GET /api/ip/history`, and `GET /api/ip/results/:id` collect local address classification, public RDAP and geolocation, reverse DNS, associated domains, and configured AbuseIPDB, VirusTotal, and Shodan intelligence. Provider keys belong in `server/.env` as `ABUSEIPDB_API_KEY`, `VIRUSTOTAL_API_KEY`, and `SHODAN_API_KEY`; they are never sent to the browser or stored in results. Private and reserved targets are classified locally and are not sent to external providers. Shodan lookups use its passive host database and never request a scan. IP geolocation is an estimate about a network address and does not identify or locate a person.
+
 ## Development
 
 Run each service in its own terminal:
@@ -62,4 +64,4 @@ cd ..\server
 npm run build
 ```
 
-The frontend dashboard calls `/api/health` through the Vite proxy and displays API readiness. The Domain Intelligence page is available at `/domain` after authentication.
+The frontend dashboard calls `/api/health` through the Vite proxy and displays API readiness. Domain and IP Intelligence pages are available at `/domain` and `/ip` after authentication.
