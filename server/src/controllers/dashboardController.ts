@@ -1,11 +1,6 @@
 import type { Request, Response } from "express";
+import { getAnalytics } from "../services/analytics.service";
 
-export function getDashboard(_request: Request, response: Response): void {
-  response.json({
-    metrics: null,
-    recentActivity: [],
-    sources: [],
-    investigationTrends: [],
-    threatOverview: [],
-  });
+export async function getDashboard(request: Request, response: Response): Promise<void> {
+  response.json(await getAnalytics(request.auth?.tenantId ?? ""));
 }
