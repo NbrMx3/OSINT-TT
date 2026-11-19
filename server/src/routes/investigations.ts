@@ -1,0 +1,22 @@
+import { Router } from "express";
+import { RoleName } from "@prisma/client";
+import { addNote, archive, cancel, create, detail, history, list, remove, results, retry, start, update } from "../controllers/investigationController";
+import { authorizeRoles, requireAuth } from "../middleware/auth";
+
+const router = Router();
+const readRoles = [RoleName.ADMINISTRATOR, RoleName.ANALYST, RoleName.INVESTIGATOR, RoleName.READ_ONLY];
+const writeRoles = [RoleName.ADMINISTRATOR, RoleName.ANALYST, RoleName.INVESTIGATOR];
+router.use(requireAuth);
+router.get("/", authorizeRoles(...readRoles), list);
+router.post("/", authorizeRoles(...writeRoles), create);
+router.get("/:id/history", authorizeRoles(...readRoles), history);
+router.get("/:id/results", authorizeRoles(...readRoles), results);
+router.post("/:id/start", authorizeRoles(...writeRoles), start);
+router.post("/:id/cancel", authorizeRoles(...writeRoles), cancel);
+router.post("/:id/retry", authorizeRoles(...writeRoles), retry);
+router.post("/:id/archive", authorizeRoles(...writeRoles), archive);
+router.post("/:id/notes", authorizeRoles(...writeRoles), addNote);
+router.patch("/:id", authorizeRoles(...writeRoles), update);
+router.delete("/:id", authorizeRoles(...writeRoles), remove);
+router.get("/:id", authorizeRoles(...readRoles), detail);
+export default router;

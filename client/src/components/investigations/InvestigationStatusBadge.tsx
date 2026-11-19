@@ -1,0 +1,5 @@
+import { Badge } from "../ui/badge";
+import type { InvestigationStatus } from "../../types/investigation";
+
+const statusStyles: Record<InvestigationStatus, string> = { DRAFT: "border-slate-400/20 bg-slate-400/[0.06] text-slate-300", PENDING: "border-blue-400/20 bg-blue-400/[0.06] text-blue-300", RUNNING: "border-cyan-400/20 bg-cyan-400/[0.06] text-cyan-300", COMPLETED: "border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-300", FAILED: "border-rose-400/20 bg-rose-400/[0.06] text-rose-300", ARCHIVED: "border-violet-400/20 bg-violet-400/[0.06] text-violet-300", ACTIVE: "border-blue-400/20 bg-blue-400/[0.06] text-blue-300", PAUSED: "border-orange-400/20 bg-orange-400/[0.06] text-orange-300" };
+export function InvestigationStatusBadge({ status }: { status: InvestigationStatus }) { return <Badge className={statusStyles[status]}><span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${status === "RUNNING" ? "animate-pulse bg-cyan-300" : "bg-current"}`} />{status.charAt(0) + status.slice(1).toLowerCase()}</Badge>; }

@@ -15,10 +15,33 @@ enum RoleName {
 }
 
 enum InvestigationStatus {
+  DRAFT
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  ARCHIVED
+  /// Legacy values retained for existing databases.
   ACTIVE
   PAUSED
+}
+
+enum InvestigationCategory {
+  DOMAIN
+  IP
+  EMAIL
+  USERNAME
+  WEBSITE
+  THREAT
+  GENERAL
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
   COMPLETED
-  ARCHIVED
+  FAILED
+  CANCELLED
 }
 
 enum TargetType {
@@ -121,25 +144,54 @@ model User {
 }
 
 model Investigation {
-  id          String              @id @default(cuid())
-  tenantId    String
-  ownerId     String
-  name        String
-  description String?
-  status      InvestigationStatus @default(ACTIVE)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  owner       User                @relation("InvestigationOwner", fields: [ownerId], references: [id])
-  targets     InvestigationTarget[]
-  entities    Entity[]
-  relationships Relationship[]
-  findings    Finding[]
-  notes       AnalystNote[]
-  reports     Report[]
-  activityLogs ActivityLog[]
+  id             String              @id @default(cuid())
+  tenantId       String
+  ownerId        String
+  name           String
+  description    String?
+  category       InvestigationCategory @default(GENERAL)
+  selectedModules Json?
+  status         InvestigationStatus @default(DRAFT)
+  progress       Int                 @default(0)
+  failureReason  String?
+  results        Json?
+  retryCount     Int                 @default(0)
+  maxRetries     Int                 @default(3)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner          User                @relation("InvestigationOwner", fields: [ownerId], references: [id])
+  targets        InvestigationTarget[]
+  entities       Entity[]
+  relationships  Relationship[]
+  findings       Finding[]
+  notes          AnalystNote[]
+  reports        Report[]
+  activityLogs   ActivityLog[]
+  jobs           InvestigationJob[]
   @@index([tenantId, status])
   @@index([ownerId])
+  @@index([tenantId, category])
+}
+
+model InvestigationJob {
+  id             String         @id @default(cuid())
+  investigationId String
+  attempt        Int            @default(1)
+  status         JobStatus      @default(QUEUED)
+  progress       Int            @default(0)
+  currentStage   String?
+  errorMessage   String?
+  queuedAt       DateTime       @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  investigation  Investigation  @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  @@unique([investigationId, attempt])
+  @@index([investigationId, status])
 }
 
 model InvestigationTarget {

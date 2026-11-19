@@ -1,0 +1,28 @@
+import type { NextFunction, Request, Response } from "express";
+import { z } from "zod";
+import { InvestigationCategory, InvestigationStatus, RoleName, TargetType } from "@prisma/client";
+import { AppError } from "../utils/appError";
+import { addAnalystNote, archiveInvestigation, cancelInvestigation, createInvestigation, deleteInvestigation, getInvestigation, getInvestigationHistory, getInvestigationResults, listInvestigations, startInvestigation, updateInvestigation } from "../services/investigationService";
+
+const targetSchema = z.object({ type: z.nativeEnum(TargetType), value: z.string().trim().min(1).max(500), label: z.string().trim().max(100).optional() });
+const createSchema = z.object({ title: z.string().trim().min(3).max(160), description: z.string().trim().max(5000).optional(), category: z.nativeEnum(InvestigationCategory), targets: z.array(targetSchema).min(1).max(100), selectedModules: z.array(z.string().trim().min(1).max(80)).max(30) });
+const updateSchema = createSchema.partial();
+const noteSchema = z.object({ content: z.string().trim().min(1).max(10000) });
+const deleteSchema = z.object({ confirmation: z.literal("DELETE") });
+const querySchema = z.object({ status: z.nativeEnum(InvestigationStatus).optional(), category: z.nativeEnum(InvestigationCategory).optional(), search: z.string().trim().max(100).optional(), page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(100).default(20) });
+
+export async function list(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json(await listInvestigations(request.auth.tenantId, querySchema.parse(request.query))); } catch (error) { next(error); } }
+export async function create(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.status(201).json({ investigation: await createInvestigation(request.auth.tenantId, request.auth.userId, parse(createSchema, request.body)) }); } catch (error) { next(error); } }
+export async function detail(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json({ investigation: await getInvestigation(String(request.params.id), request.auth.tenantId) }); } catch (error) { next(error); } }
+export async function update(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json({ investigation: await updateInvestigation(String(request.params.id), request.auth.tenantId, parse(updateSchema, request.body)) }); } catch (error) { next(error); } }
+export async function start(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.status(202).json({ job: await startInvestigation(String(request.params.id), request.auth.tenantId, request.auth.userId) }); } catch (error) { next(error); } }
+export async function cancel(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); await cancelInvestigation(String(request.params.id), request.auth.tenantId, request.auth.userId); response.status(202).json({ message: "Investigation cancellation requested" }); } catch (error) { next(error); } }
+export async function retry(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.status(202).json({ job: await startInvestigation(String(request.params.id), request.auth.tenantId, request.auth.userId) }); } catch (error) { next(error); } }
+export async function archive(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json({ investigation: await archiveInvestigation(String(request.params.id), request.auth.tenantId, request.auth.userId) }); } catch (error) { next(error); } }
+export async function remove(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); parse(deleteSchema, request.body); await deleteInvestigation(String(request.params.id), request.auth.tenantId, request.auth.userId, request.auth.role); response.status(204).send(); } catch (error) { next(error); } }
+export async function addNote(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.status(201).json({ note: await addAnalystNote(String(request.params.id), request.auth.tenantId, request.auth.userId, parse(noteSchema, request.body).content) }); } catch (error) { next(error); } }
+export async function history(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json({ history: await getInvestigationHistory(String(request.params.id), request.auth.tenantId) }); } catch (error) { next(error); } }
+export async function results(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json(await getInvestigationResults(String(request.params.id), request.auth.tenantId)); } catch (error) { next(error); } }
+
+function assertAuth(request: Request): asserts request is Request & { auth: NonNullable<Request["auth"]> } { if (!request.auth) throw new AppError(401, "Authentication required", "AUTH_REQUIRED"); }
+function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> { const result = schema.safeParse(value); if (!result.success) throw new AppError(400, result.error.issues.map((issue) => issue.message).join("; "), "VALIDATION_ERROR"); return result.data; }

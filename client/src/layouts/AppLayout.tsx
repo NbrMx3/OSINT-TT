@@ -22,7 +22,7 @@ function AppLayout() {
   const [searchTerm, setSearchTerm] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
-  const currentItem = getNavigationItem(location.pathname);
+  const currentItem = getNavigationItem(location.pathname) ?? (location.pathname.startsWith("/investigations") ? getNavigationItem("/investigations") : undefined);
   const searchResults = useMemo(() => allNavigationItems.filter((item) => item.label.toLowerCase().includes(searchTerm.toLowerCase())), [searchTerm]);
 
   useEffect(() => {

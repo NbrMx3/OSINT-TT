@@ -30,6 +30,8 @@ The API uses a pooled `pg` client with TLS and verifies the PostgreSQL connectio
 
 Phase 3 adds Prisma migrations and seeded roles, httpOnly-cookie authentication, tenant-scoped persistence, password reset flow, profile management, role authorization, and AES-256-GCM encryption for stored API configurations. Use `npm run db:generate`, `npm run db:migrate`, and `npm run db:seed` from `server/` when provisioning a new environment.
 
+Phase 4 adds tenant-scoped investigation CRUD, target and module selection, persisted lifecycle status, asynchronous job progress with retry/cancel handling, analyst notes, audit history, saved execution summaries, and explicit empty results until real intelligence modules write findings. Investigation endpoints are under `/api/investigations`.
+
 ## Development
 
 Run each service in its own terminal:

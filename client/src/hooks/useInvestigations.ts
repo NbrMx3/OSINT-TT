@@ -1,0 +1,18 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { addAnalystNote, archiveInvestigation, cancelInvestigation, createInvestigation, deleteInvestigation, getInvestigation, getInvestigationHistory, getInvestigationResults, getInvestigations, retryInvestigation, startInvestigation, updateInvestigation } from "../services/investigationService";
+import type { CreateInvestigationInput, InvestigationCategory, InvestigationStatus } from "../types/investigation";
+
+export function useInvestigations(params: { status?: InvestigationStatus; category?: InvestigationCategory; search?: string } = {}) { return useQuery({ queryKey: ["investigations", params], queryFn: () => getInvestigations(params) }); }
+export function useInvestigation(id: string | undefined) { return useQuery({ queryKey: ["investigation", id], queryFn: () => getInvestigation(id as string), enabled: Boolean(id), refetchInterval: (query) => { const status = query.state.data?.investigation.status; return status === "PENDING" || status === "RUNNING" ? 1000 : false; } }); }
+export function useInvestigationHistory(id: string | undefined) { return useQuery({ queryKey: ["investigation-history", id], queryFn: () => getInvestigationHistory(id as string), enabled: Boolean(id) }); }
+export function useInvestigationResults(id: string | undefined) { return useQuery({ queryKey: ["investigation-results", id], queryFn: () => getInvestigationResults(id as string), enabled: Boolean(id) }); }
+
+function useInvestigationMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<unknown>, id?: string) { const queryClient = useQueryClient(); return useMutation({ mutationFn, onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["investigations"] }); if (id) void queryClient.invalidateQueries({ queryKey: ["investigation", id] }); void queryClient.invalidateQueries({ queryKey: ["investigation-history", id] }); void queryClient.invalidateQueries({ queryKey: ["investigation-results", id] }); } }); }
+export function useCreateInvestigation() { const queryClient = useQueryClient(); return useMutation({ mutationFn: (input: CreateInvestigationInput) => createInvestigation(input), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["investigations"] }); } }); }
+export function useUpdateInvestigation(id: string) { return useInvestigationMutation((input: Partial<CreateInvestigationInput>) => updateInvestigation(id, input), id); }
+export function useStartInvestigation(id: string) { return useInvestigationMutation(() => startInvestigation(id), id); }
+export function useCancelInvestigation(id: string) { return useInvestigationMutation(() => cancelInvestigation(id), id); }
+export function useRetryInvestigation(id: string) { return useInvestigationMutation(() => retryInvestigation(id), id); }
+export function useArchiveInvestigation(id: string) { return useInvestigationMutation(() => archiveInvestigation(id), id); }
+export function useDeleteInvestigation(id: string) { return useInvestigationMutation(() => deleteInvestigation(id), id); }
+export function useAddAnalystNote(id: string) { return useInvestigationMutation((content: string) => addAnalystNote(id, content), id); }
