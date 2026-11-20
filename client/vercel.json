@@ -5,8 +5,8 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://osint-tt.onrender.com/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://osint-tt.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
