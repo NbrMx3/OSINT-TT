@@ -11,6 +11,34 @@
   -webkit-font-smoothing: antialiased;
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="light"] body {
+  background: #f3f6fa;
+  color: #0f172a;
+}
+
+/* The workspace predates theme tokens and uses Tailwind's dark utility palette.
+   These scoped overrides keep the existing visual language while making light
+   mode readable across shared layouts and feature pages. */
+html[data-theme="light"] .bg-\[\#060a10\] { background-color: #f3f6fa !important; }
+html[data-theme="light"] .bg-\[\#080e17\] { background-color: #ffffff !important; }
+html[data-theme="light"] .bg-\[\#0b121c\] { background-color: #ffffff !important; }
+html[data-theme="light"] .bg-black\/70 { background-color: rgb(15 23 42 / 0.35) !important; }
+html[data-theme="light"] [class*="border-white"] { border-color: rgb(15 23 42 / 0.12) !important; }
+html[data-theme="light"] [class*="bg-white"] { background-color: rgb(15 23 42 / 0.035) !important; }
+html[data-theme="light"] .text-white,
+html[data-theme="light"] .text-slate-100,
+html[data-theme="light"] .text-slate-200 { color: #0f172a !important; }
+html[data-theme="light"] .text-slate-300 { color: #334155 !important; }
+html[data-theme="light"] .text-slate-400 { color: #475569 !important; }
+html[data-theme="light"] .text-slate-500 { color: #64748b !important; }
+html[data-theme="light"] .text-slate-600 { color: #64748b !important; }
+html[data-theme="light"] .text-slate-700 { color: #475569 !important; }
+html[data-theme="light"] select option { background: #ffffff; color: #0f172a; }
+
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, a { -webkit-tap-highlight-color: transparent; }
