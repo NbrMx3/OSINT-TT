@@ -1,4 +1,4 @@
-export interface Admin { id: string; email: string; name: string; }
+export interface Admin { id: string; email: string; name: string; mfaEnabled: boolean; }
 
 export interface AdminActivityLog {
   id: string;

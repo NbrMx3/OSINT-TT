@@ -1,13 +1,21 @@
 import { Router } from "express";
-import { adminLogin, adminLogout, currentAdmin } from "../controllers/adminAuthController";
+import { adminLogin, adminLogout, adminMfaVerify, adminSessions, changeAdminPasswordController, currentAdmin, disableAdminMfaController, enableAdminMfaController, forceAdminLogout, revokeAdminSessionController, startAdminMfa } from "../controllers/adminAuthController";
 import { getAdminDashboard, listAdminActivityLogs } from "../controllers/adminController";
 import { optionalAuth } from "../middleware/auth";
 import { requireAdminAuth } from "../middleware/auth";
 
 const router = Router();
 router.post("/auth/login", adminLogin);
+router.post("/auth/mfa/verify", adminMfaVerify);
 router.post("/auth/logout", optionalAuth, requireAdminAuth, adminLogout);
 router.get("/auth/me", requireAdminAuth, currentAdmin);
+router.post("/auth/password", requireAdminAuth, changeAdminPasswordController);
+router.post("/auth/mfa/setup", requireAdminAuth, startAdminMfa);
+router.post("/auth/mfa/enable", requireAdminAuth, enableAdminMfaController);
+router.post("/auth/mfa/disable", requireAdminAuth, disableAdminMfaController);
+router.get("/auth/sessions", requireAdminAuth, adminSessions);
+router.delete("/auth/sessions", requireAdminAuth, revokeAdminSessionController);
+router.post("/auth/sessions/revoke-all", requireAdminAuth, forceAdminLogout);
 router.get("/dashboard", requireAdminAuth, getAdminDashboard);
 router.get("/activity-logs", requireAdminAuth, listAdminActivityLogs);
 export default router;

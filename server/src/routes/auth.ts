@@ -1,15 +1,23 @@
 import { Router } from "express";
 import { RoleName } from "@prisma/client";
-import { currentUser, forgotPassword, login, logout, register, resetPasswordController, updateCurrentUser } from "../controllers/authController";
+import { changePassword, currentUser, disableMfa, enableMfa, forceLogout, forgotPassword, login, logout, register, resetPasswordController, revokeSession, sessions, startMfaSetup, updateCurrentUser, verifyMfa } from "../controllers/authController";
 import { listTenantUsers } from "../controllers/adminController";
 import { authorizeRoles, optionalAuth, requireAuth } from "../middleware/auth";
 
 const router = Router();
 router.post("/register", register);
 router.post("/login", login);
+router.post("/mfa/verify", verifyMfa);
 router.post("/logout", optionalAuth, logout);
 router.get("/me", requireAuth, currentUser);
 router.patch("/me", requireAuth, updateCurrentUser);
+router.post("/password", requireAuth, changePassword);
+router.post("/mfa/setup", requireAuth, startMfaSetup);
+router.post("/mfa/enable", requireAuth, enableMfa);
+router.post("/mfa/disable", requireAuth, disableMfa);
+router.get("/sessions", requireAuth, sessions);
+router.delete("/sessions", requireAuth, revokeSession);
+router.post("/sessions/revoke-all", requireAuth, forceLogout);
 router.get("/tenant-users", requireAuth, authorizeRoles(RoleName.ADMINISTRATOR), listTenantUsers);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPasswordController);

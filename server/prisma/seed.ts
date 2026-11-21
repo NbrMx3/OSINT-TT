@@ -11,7 +11,7 @@ async function main() {
   const password = process.env.ADMIN_PASSWORD;
   const name = process.env.ADMIN_NAME?.trim() || "System Administrator";
   if (email && password) {
-    if (password.length < 12) throw new Error("ADMIN_PASSWORD must be at least 12 characters");
+    if (password.length < 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) throw new Error("ADMIN_PASSWORD must be at least 12 characters and include upper, lower, number, and special characters");
     await prisma.adminAccount.upsert({ where: { email }, update: { name, passwordHash: await bcrypt.hash(password, 12), isActive: true }, create: { email, name, passwordHash: await bcrypt.hash(password, 12) } });
     console.log(`Seeded administrator account ${email}`);
   } else {

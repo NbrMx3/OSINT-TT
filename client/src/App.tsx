@@ -27,6 +27,7 @@ import ReportsPage from "./pages/ReportsPage";
 import LandingPage from "./pages/LandingPage";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
 
 function App() {
   return <BrowserRouter><AuthProvider><AdminProvider><Routes>
@@ -62,6 +63,7 @@ function App() {
     </Route></Route>
     <Route element={<AdminProtectedRoute />}><Route element={<AdminLayout />}>
       <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+      <Route path="/admin/security" element={<AdminSecurityPage />} />
     </Route></Route>
   </Routes></AdminProvider></AuthProvider></BrowserRouter>;
 }

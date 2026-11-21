@@ -5,17 +5,20 @@ export interface AuthContext {
   tenantId: string;
   role: RoleName;
   tokenVersion: number;
+  sessionId: string;
 }
 
 export interface AdminAuthContext {
   adminId: string;
   tokenVersion: number;
+  sessionId: string;
 }
 
 export interface PublicAdmin {
   id: string;
   email: string;
   name: string;
+  mfaEnabled: boolean;
 }
 
 export interface PublicUser {
@@ -24,4 +27,5 @@ export interface PublicUser {
   email: string;
   name: string;
   role: RoleName;
+  mfaEnabled: boolean;
 }

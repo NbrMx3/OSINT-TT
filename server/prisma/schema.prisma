@@ -143,6 +143,10 @@ model User {
   passwordResetTokenHash String?         @unique
   passwordResetExpiresAt DateTime?
   lastLoginAt           DateTime?
+  mfaEnabled            Boolean          @default(false)
+  mfaSecretEncrypted    String?
+  mfaPendingSecretEncrypted String?
+  mfaRecoveryCodes      Json?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   tenant                Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -153,6 +157,7 @@ model User {
   authoredReports       Report[]         @relation("ReportAuthor")
   activityLogs          ActivityLog[]
   apiConfigurations     ApiConfiguration[] @relation("ApiConfigurationOwner")
+  sessions              UserSession[]
   @@index([tenantId])
 }
 
@@ -164,8 +169,43 @@ model AdminAccount {
   isActive     Boolean  @default(true)
   tokenVersion Int      @default(0)
   lastLoginAt  DateTime?
+  mfaEnabled   Boolean  @default(false)
+  mfaSecretEncrypted String?
+  mfaPendingSecretEncrypted String?
+  mfaRecoveryCodes Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  sessions     AdminSession[]
+}
+
+model UserSession {
+  id         String    @id
+  userId     String
+  tokenHash  String    @unique
+  userAgent  String?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model AdminSession {
+  id         String       @id
+  adminId    String
+  tokenHash  String       @unique
+  userAgent  String?
+  ipAddress  String?
+  createdAt  DateTime     @default(now())
+  lastUsedAt DateTime     @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  admin      AdminAccount @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  @@index([adminId, createdAt])
+  @@index([expiresAt])
 }
 
 model Investigation {
