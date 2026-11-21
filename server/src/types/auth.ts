@@ -7,6 +7,17 @@ export interface AuthContext {
   tokenVersion: number;
 }
 
+export interface AdminAuthContext {
+  adminId: string;
+  tokenVersion: number;
+}
+
+export interface PublicAdmin {
+  id: string;
+  email: string;
+  name: string;
+}
+
 export interface PublicUser {
   id: string;
   tenantId: string;

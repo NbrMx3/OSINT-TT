@@ -14,10 +14,12 @@ import reportRoutes from "./report.routes";
 import { getDashboard } from "../controllers/dashboardController";
 import { getHealth } from "../controllers/healthController";
 import { requireAuth } from "../middleware/auth";
+import adminRoutes from "./admin";
 
 const router = Router();
 router.get("/health", getHealth);
 router.use("/auth", authRoutes);
+router.use("/admin", adminRoutes);
 router.use("/configurations", configurationRoutes);
 router.use("/investigations", investigationRoutes);
 router.use("/domain", domainRoutes);

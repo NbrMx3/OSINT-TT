@@ -1,7 +1,10 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { AdminProvider } from "./context/AdminContext";
 import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
+import { AdminProtectedRoute } from "./components/ProtectedRoute";
 import AppLayout from "./layouts/AppLayout";
+import AdminLayout from "./layouts/AdminLayout";
 import DashboardPage from "./pages/DashboardPage";
 import DomainIntelligencePage from "./pages/DomainIntelligencePage";
 import IpIntelligencePage from "./pages/IpIntelligencePage";
@@ -22,10 +25,13 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import GraphAnalysisPage from "./pages/GraphAnalysisPage";
 import ReportsPage from "./pages/ReportsPage";
 import LandingPage from "./pages/LandingPage";
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 
 function App() {
-  return <BrowserRouter><AuthProvider><Routes>
+  return <BrowserRouter><AuthProvider><AdminProvider><Routes>
     <Route path="/" element={<LandingPage />} />
+    <Route path="/admin/login" element={<AdminLoginPage />} />
     <Route element={<PublicOnlyRoute />}>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -54,7 +60,10 @@ function App() {
       <Route path="/settings" element={<IntelligenceModulePage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Route></Route>
-  </Routes></AuthProvider></BrowserRouter>;
+    <Route element={<AdminProtectedRoute />}><Route element={<AdminLayout />}>
+      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+    </Route></Route>
+  </Routes></AdminProvider></AuthProvider></BrowserRouter>;
 }
 
 export default App;

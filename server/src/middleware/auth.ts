@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { RoleName } from "@prisma/client";
 import { AppError } from "../utils/appError";
 import { verifyAccessToken } from "../services/authService";
+import { verifyAdminAccessToken } from "../services/adminAuthService";
 
 export async function requireAuth(request: Request, _response: Response, next: NextFunction): Promise<void> {
   try {
@@ -32,10 +33,24 @@ export function authorizeRoles(...roles: RoleName[]) {
   };
 }
 
+export async function requireAdminAuth(request: Request, _response: Response, next: NextFunction): Promise<void> {
+  try {
+    const token = request.cookies?.osintx_admin_token as string | undefined ?? getBearerToken(request);
+    if (!token) throw new AppError(401, "Administrator authentication required", "ADMIN_AUTH_REQUIRED");
+    request.adminAuth = await verifyAdminAccessToken(token);
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 function getToken(request: Request): string | undefined {
   const cookieToken = request.cookies?.osintx_token as string | undefined;
   if (cookieToken) return cookieToken;
+  return getBearerToken(request);
+}
+
+function getBearerToken(request: Request): string | undefined {
   const authorization = request.header("authorization");
-  if (authorization?.startsWith("Bearer ")) return authorization.slice(7);
-  return undefined;
+  return authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined;
 }
