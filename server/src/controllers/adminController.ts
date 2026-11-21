@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { prisma } from "../config/prisma";
+import { verifyAuditChain } from "../services/auditService";
 
 export async function listTenantUsers(request: Request, response: Response): Promise<void> {
   const users = await prisma.user.findMany({ where: { tenantId: request.auth?.tenantId }, select: { id: true, name: true, email: true, isActive: true, createdAt: true, role: { select: { name: true } } }, orderBy: { createdAt: "asc" } });
@@ -31,6 +32,10 @@ export async function listAdminActivityLogs(request: Request, response: Response
     prisma.activityLog.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * pageSize, take: pageSize, include: { user: { select: { name: true, email: true } }, tenant: { select: { name: true, slug: true } }, investigation: { select: { id: true, name: true } } } }),
   ]);
   response.json({ items, page, pageSize, total, pages: Math.max(1, Math.ceil(total / pageSize)) });
+}
+
+export async function verifyAdminActivityLogs(_request: Request, response: Response): Promise<void> {
+  response.json(await verifyAuditChain());
 }
 
 function positiveInteger(value: unknown, fallback: number): number {

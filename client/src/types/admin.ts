@@ -8,7 +8,12 @@ export interface AdminActivityLog {
   metadata: Record<string, unknown> | null;
   createdAt: string;
   user: { name: string; email: string } | null;
-  tenant: { name: string; slug: string };
+  tenant: { name: string; slug: string } | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  requestId: string | null;
+  chainIndex: number | null;
+  integrityHash: string | null;
   investigation: { id: string; name: string } | null;
 }
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { adminLogin, adminLogout, adminMfaVerify, adminSessions, changeAdminPasswordController, currentAdmin, disableAdminMfaController, enableAdminMfaController, forceAdminLogout, revokeAdminSessionController, startAdminMfa } from "../controllers/adminAuthController";
-import { getAdminDashboard, listAdminActivityLogs } from "../controllers/adminController";
+import { getAdminDashboard, listAdminActivityLogs, verifyAdminActivityLogs } from "../controllers/adminController";
 import { optionalAuth } from "../middleware/auth";
 import { requireAdminAuth } from "../middleware/auth";
 
@@ -18,4 +18,5 @@ router.delete("/auth/sessions", requireAdminAuth, revokeAdminSessionController);
 router.post("/auth/sessions/revoke-all", requireAdminAuth, forceAdminLogout);
 router.get("/dashboard", requireAdminAuth, getAdminDashboard);
 router.get("/activity-logs", requireAdminAuth, listAdminActivityLogs);
+router.get("/activity-logs/verify", requireAdminAuth, verifyAdminActivityLogs);
 export default router;

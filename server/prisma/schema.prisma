@@ -606,20 +606,27 @@ model Report {
 }
 
 model ActivityLog {
-  id             String        @id @default(cuid())
-  tenantId       String
-  userId         String?
+  id              String        @id @default(cuid())
+  tenantId        String?
+  userId          String?
   investigationId String?
-  action         String
-  entityType     String?
-  entityId       String?
-  metadata       Json?
-  createdAt      DateTime      @default(now())
-  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  investigation  Investigation? @relation(fields: [investigationId], references: [id], onDelete: SetNull)
+  action          String
+  entityType      String?
+  entityId        String?
+  metadata        Json?
+  ipAddress       String?
+  userAgent       String?
+  requestId       String?
+  chainIndex      Int?          @unique
+  previousHash    String?
+  integrityHash   String?
+  createdAt       DateTime      @default(now())
+  tenant          Tenant?       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  investigation   Investigation? @relation(fields: [investigationId], references: [id], onDelete: SetNull)
   @@index([tenantId, createdAt])
   @@index([investigationId])
+  @@index([chainIndex])
 }
 
 model ApiConfiguration {

@@ -6,11 +6,13 @@ import helmet from "helmet";
 import apiRoutes from "./routes";
 import { env } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
+import { auditRequest } from "./middleware/audit";
 
 const app = express();
 
 app.disable("x-powered-by");
 app.set("trust proxy", env.nodeEnv === "production" ? 1 : false);
+app.use(auditRequest);
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {

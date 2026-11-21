@@ -8,6 +8,7 @@ import { AppError } from "../utils/appError";
 import type { AuthContext, PublicUser } from "../types/auth";
 import { buildTotpUri, consumeRecoveryCode, generateRecoveryCodes, generateTotpSecret, hashRecoveryCode, verifyTotp } from "../utils/mfa";
 import { decryptSecret, encryptSecret } from "../utils/secretCrypto";
+import { appendAuditLog } from "./auditService";
 
 const publicUserInclude = { role: { select: { name: true, permissions: { select: { permission: { select: { code: true } } } } } } } as const;
 export const authCookieName = "osintx_token";
@@ -162,5 +163,5 @@ function getRecoveryHashes(value: unknown): string[] { return Array.isArray(valu
 function slugify(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "workspace"; }
 
 async function recordAudit(input: { tenantId: string; userId: string; action: string; entityType: string; entityId: string }): Promise<void> {
-  await prisma.activityLog.create({ data: input });
+  await appendAuditLog(input);
 }
