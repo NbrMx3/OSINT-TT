@@ -1,0 +1,15 @@
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowRight, LoaderCircle, ShieldCheck } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { acceptInvitation } from "../../services/invitationService";
+import { getApiErrorMessage } from "../../utils/errors";
+
+function InviteAcceptPage() {
+  const { token = "" } = useParams(); const navigate = useNavigate(); const [name, setName] = useState(""); const [password, setPassword] = useState(""); const [error, setError] = useState(""); const [pending, setPending] = useState(false);
+  async function submit(event: FormEvent) { event.preventDefault(); setPending(true); setError(""); try { await acceptInvitation({ token, name, password }); navigate("/login", { replace: true, state: { invited: true } }); } catch (reason) { setError(getApiErrorMessage(reason, "Unable to accept invitation.")); } finally { setPending(false); } }
+  return <main className="flex min-h-screen items-center justify-center bg-[#060a10] px-5 py-10 text-slate-100"><div className="w-full max-w-md"><div className="mb-8 flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/[0.08] text-cyan-300"><ShieldCheck size={22} /></span><div><p className="text-sm font-bold tracking-[0.18em] text-white">OSINT<span className="text-cyan-300">-X</span></p><p className="mt-1 text-[9px] uppercase tracking-[0.2em] text-slate-600">Workspace invitation</p></div></div><div className="rounded-xl border border-white/[0.08] bg-[#0b121c] p-6"><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-300">You’re invited</p><h1 className="mt-3 text-2xl font-semibold tracking-tight text-white">Create your workspace account</h1><p className="mt-2 text-xs leading-5 text-slate-500">Choose a display name and password to join the tenant workspace.</p><form className="mt-7 space-y-4" onSubmit={submit}><label className="block space-y-2"><span className="text-[10px] uppercase tracking-wider text-slate-500">Display name</span><Input required value={name} onChange={(event) => setName(event.target.value)} /></label><label className="block space-y-2"><span className="text-[10px] uppercase tracking-wider text-slate-500">Password</span><Input required minLength={12} type="password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>{error && <p className="rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-3 py-2.5 text-xs text-rose-200">{error}</p>}<Button className="w-full" disabled={pending} type="submit">{pending ? <LoaderCircle className="animate-spin" size={15} /> : <ArrowRight size={15} />} {pending ? "Joining..." : "Join workspace"}</Button></form></div><p className="mt-5 text-center text-[10px] text-slate-600"><Link className="text-cyan-300 hover:underline" to="/login">Return to user sign in</Link></p></div></main>;
+}
+
+export default InviteAcceptPage;

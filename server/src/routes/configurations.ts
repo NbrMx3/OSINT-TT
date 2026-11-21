@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { RoleName } from "@prisma/client";
 import { createConfiguration, listConfigurations } from "../controllers/apiConfigurationController";
-import { authorizeRoles, requireAuth } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth";
+import { authorizePermissions } from "../middleware/auth";
+import { PERMISSIONS } from "../config/permissions";
 
 const router = Router();
-router.use(requireAuth, authorizeRoles(RoleName.ADMINISTRATOR, RoleName.ANALYST, RoleName.INVESTIGATOR));
-router.get("/", listConfigurations);
-router.post("/", createConfiguration);
+router.use(requireAuth);
+router.get("/", authorizePermissions(PERMISSIONS.MANAGE_SYSTEM), listConfigurations);
+router.post("/", authorizePermissions(PERMISSIONS.MANAGE_SYSTEM), createConfiguration);
 export default router;

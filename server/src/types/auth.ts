@@ -6,6 +6,7 @@ export interface AuthContext {
   role: RoleName;
   tokenVersion: number;
   sessionId: string;
+  permissions: string[];
 }
 
 export interface AdminAuthContext {
@@ -28,4 +29,5 @@ export interface PublicUser {
   name: string;
   role: RoleName;
   mfaEnabled: boolean;
+  permissions: string[];
 }

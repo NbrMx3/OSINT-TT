@@ -9,7 +9,7 @@ import type { AuthContext, PublicUser } from "../types/auth";
 import { buildTotpUri, consumeRecoveryCode, generateRecoveryCodes, generateTotpSecret, hashRecoveryCode, verifyTotp } from "../utils/mfa";
 import { decryptSecret, encryptSecret } from "../utils/secretCrypto";
 
-const publicUserInclude = { role: { select: { name: true } } } as const;
+const publicUserInclude = { role: { select: { name: true, permissions: { select: { permission: { select: { code: true } } } } } } } as const;
 export const authCookieName = "osintx_token";
 export const authCookieOptions = { httpOnly: true, sameSite: env.nodeEnv === "production" ? "strict" as const : "lax" as const, secure: env.nodeEnv === "production", path: "/" };
 
@@ -137,11 +137,11 @@ export async function verifyAccessToken(token: string): Promise<AuthContext> {
   try {
     const payload = jwt.verify(token, env.jwtSecret) as jwt.JwtPayload & { tenantId?: string; role?: RoleName; tokenVersion?: number; sessionId?: string };
     if (!payload.sub || !payload.tenantId || !payload.role || payload.tokenVersion === undefined || !payload.sessionId) throw new Error("Invalid token claims");
-    const user = await prisma.user.findFirst({ where: { id: payload.sub, tenantId: payload.tenantId, isActive: true }, include: { role: true } });
+    const user = await prisma.user.findFirst({ where: { id: payload.sub, tenantId: payload.tenantId, isActive: true }, include: publicUserInclude });
     const session = await prisma.userSession.findFirst({ where: { id: payload.sessionId, userId: payload.sub, tokenHash: hashToken(token), revokedAt: null, expiresAt: { gt: new Date() } } });
     if (!user || !session || user.tokenVersion !== payload.tokenVersion || user.role.name !== payload.role) throw new Error("Session revoked");
     await prisma.userSession.update({ where: { id: session.id }, data: { lastUsedAt: new Date() } });
-    return { userId: user.id, tenantId: user.tenantId, role: user.role.name, tokenVersion: user.tokenVersion, sessionId: session.id };
+    return { userId: user.id, tenantId: user.tenantId, role: user.role.name, tokenVersion: user.tokenVersion, sessionId: session.id, permissions: user.role.permissions.map((item) => item.permission.code) };
   } catch {
     throw new AppError(401, "Invalid or expired session", "SESSION_INVALID");
   }
@@ -156,7 +156,7 @@ async function issueAccessToken(user: { id: string; tenantId: string; tokenVersi
 
 function createMfaChallenge(accountType: "user", accountId: string, tokenVersion: number): string { return jwt.sign({ tokenType: "mfa", accountType, tokenVersion }, env.jwtSecret, { subject: accountId, expiresIn: "5m" }); }
 function verifyMfaChallenge(token: string, accountType: "user"): jwt.JwtPayload & { sub: string; tokenVersion: number } { try { const payload = jwt.verify(token, env.jwtSecret) as jwt.JwtPayload & { tokenType?: string; accountType?: string; tokenVersion?: number }; if (payload.tokenType !== "mfa" || payload.accountType !== accountType || !payload.sub || payload.tokenVersion === undefined) throw new Error("Invalid MFA challenge"); return payload as jwt.JwtPayload & { sub: string; tokenVersion: number }; } catch { throw new AppError(401, "MFA challenge is invalid or expired", "MFA_CHALLENGE_INVALID"); } }
-function toPublicUser(user: { id: string; tenantId: string; email: string; name: string; mfaEnabled: boolean; role: { name: RoleName } }): PublicUser { return { id: user.id, tenantId: user.tenantId, email: user.email, name: user.name, role: user.role.name, mfaEnabled: user.mfaEnabled }; }
+function toPublicUser(user: { id: string; tenantId: string; email: string; name: string; mfaEnabled: boolean; role: { name: RoleName; permissions: { permission: { code: string } }[] } }): PublicUser { return { id: user.id, tenantId: user.tenantId, email: user.email, name: user.name, role: user.role.name, mfaEnabled: user.mfaEnabled, permissions: user.role.permissions.map((item) => item.permission.code) }; }
 function hashToken(token: string): string { return crypto.createHash("sha256").update(token).digest("hex"); }
 function getRecoveryHashes(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
 function slugify(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "workspace"; }

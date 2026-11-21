@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Bell, ChevronLeft, ChevronRight, CircleHelp, Menu, Search, ShieldCheck, X } from "lucide-react";
-import { allNavigationItems, getNavigationItem, navigationGroups } from "../config/navigation";
+import { getNavigationItem, navigationGroups } from "../config/navigation";
 import { cn } from "../utils/cn";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
+import { useAuth } from "../context/useAuth";
 
 const notifications = [
   { title: "Source sync completed", description: "Domain intelligence finished its latest collection cycle.", time: "12 min ago", unread: true },
@@ -22,8 +23,11 @@ function AppLayout() {
   const [searchTerm, setSearchTerm] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const visibleNavigationGroups = useMemo(() => navigationGroups.map((group) => ({ ...group, items: group.items.filter((item) => !item.requiredPermission || user?.permissions.includes(item.requiredPermission)) })).filter((group) => group.items.length), [user]);
+  const visibleNavigationItems = useMemo(() => visibleNavigationGroups.flatMap((group) => group.items), [visibleNavigationGroups]);
   const currentItem = getNavigationItem(location.pathname) ?? (location.pathname.startsWith("/investigations") ? getNavigationItem("/investigations") : undefined);
-  const searchResults = useMemo(() => allNavigationItems.filter((item) => item.label.toLowerCase().includes(searchTerm.toLowerCase())), [searchTerm]);
+  const searchResults = useMemo(() => visibleNavigationItems.filter((item) => item.label.toLowerCase().includes(searchTerm.toLowerCase())), [searchTerm, visibleNavigationItems]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -43,7 +47,7 @@ function AppLayout() {
   function goTo(path: string) { navigate(path); setSearchOpen(false); setMobileOpen(false); setSearchTerm(""); }
 
   return <div className="min-h-screen bg-[#060a10] text-slate-100">
-    <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onCollapsedChange={setCollapsed} onClose={() => setMobileOpen(false)} onNavigate={() => setMobileOpen(false)} />
+    <Sidebar groups={visibleNavigationGroups} collapsed={collapsed} mobileOpen={mobileOpen} onCollapsedChange={setCollapsed} onClose={() => setMobileOpen(false)} onNavigate={() => setMobileOpen(false)} />
     {mobileOpen && <button aria-label="Close navigation" className="fixed inset-0 z-20 bg-black/70 lg:hidden" onClick={() => setMobileOpen(false)} />}
     <div className={cn("transition-[padding] duration-200", collapsed ? "lg:pl-20" : "lg:pl-72")}>
       <header className="sticky top-0 z-10 flex h-[68px] items-center justify-between border-b border-white/[0.07] bg-[#080e17]/95 px-3 backdrop-blur sm:px-5 lg:px-7">
@@ -58,11 +62,11 @@ function AppLayout() {
   </div>;
 }
 
-function Sidebar({ collapsed, mobileOpen, onCollapsedChange, onClose, onNavigate }: { collapsed: boolean; mobileOpen: boolean; onCollapsedChange: (value: boolean) => void; onClose: () => void; onNavigate: () => void }) {
+function Sidebar({ groups, collapsed, mobileOpen, onCollapsedChange, onClose, onNavigate }: { groups: typeof navigationGroups; collapsed: boolean; mobileOpen: boolean; onCollapsedChange: (value: boolean) => void; onClose: () => void; onNavigate: () => void }) {
   const isCollapsed = collapsed;
   return <aside className={cn("fixed inset-y-0 left-0 z-30 flex flex-col border-r border-white/[0.07] bg-[#080e17] transition-all duration-200 lg:translate-x-0", isCollapsed ? "w-20" : "w-72", mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}>
     <div className="flex h-[68px] items-center justify-between border-b border-white/[0.07] px-4"><button className="flex min-w-0 items-center gap-3" onClick={() => onCollapsedChange(false)}><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/[0.08] text-cyan-300"><ShieldCheck size={19} /></span>{!isCollapsed && <span className="text-left"><span className="block text-sm font-bold tracking-[0.18em] text-white">OSINT<span className="text-cyan-300">-X</span></span><span className="mt-0.5 block text-[9px] uppercase tracking-[0.18em] text-slate-600">Intel platform</span></span>}</button><Button aria-label="Close navigation" className="lg:hidden" size="icon" variant="ghost" onClick={onClose}><X size={17} /></Button></div>
-    <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Primary navigation">{navigationGroups.map((group) => <div key={group.label}><p className={cn("mb-2 px-3 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600", isCollapsed && "text-center text-[8px]")}>{isCollapsed ? group.label.slice(0, 3) : group.label}</p><div className="space-y-1">{group.items.map((item) => <NavLink className={({ isActive }) => cn("group flex items-center gap-3 rounded-md border px-3 py-2.5 text-xs font-medium transition", isActive ? "border-cyan-400/20 bg-cyan-400/[0.08] text-cyan-200 shadow-[inset_3px_0_0_#22d3ee]" : "border-transparent text-slate-500 hover:bg-white/[0.04] hover:text-slate-200", isCollapsed && "justify-center px-2")} key={item.path} title={isCollapsed ? item.label : undefined} to={item.path} onClick={onNavigate}><item.icon size={16} className="shrink-0" />{!isCollapsed && <span className="truncate">{item.label}</span>}</NavLink>)}</div></div>)}</nav>
+    <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Primary navigation">{groups.map((group) => <div key={group.label}><p className={cn("mb-2 px-3 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600", isCollapsed && "text-center text-[8px]")}>{isCollapsed ? group.label.slice(0, 3) : group.label}</p><div className="space-y-1">{group.items.map((item) => <NavLink className={({ isActive }) => cn("group flex items-center gap-3 rounded-md border px-3 py-2.5 text-xs font-medium transition", isActive ? "border-cyan-400/20 bg-cyan-400/[0.08] text-cyan-200 shadow-[inset_3px_0_0_#22d3ee]" : "border-transparent text-slate-500 hover:bg-white/[0.04] hover:text-slate-200", isCollapsed && "justify-center px-2")} key={item.path} title={isCollapsed ? item.label : undefined} to={item.path} onClick={onNavigate}><item.icon size={16} className="shrink-0" />{!isCollapsed && <span className="truncate">{item.label}</span>}</NavLink>)}</div></div>)}</nav>
     <div className="border-t border-white/[0.07] p-3"><div className={cn("flex items-center gap-3 rounded-lg border border-white/[0.07] bg-white/[0.025] p-2.5", isCollapsed && "justify-center")}><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-cyan-400/15 text-[10px] font-bold text-cyan-300">AN</span>{!isCollapsed && <div className="min-w-0"><p className="truncate text-xs font-semibold text-slate-300">Analyst workspace</p><p className="truncate text-[10px] text-slate-600">Phase 2 interface</p></div>}</div><Button aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"} className="mt-2 hidden w-full lg:flex" size="sm" variant="ghost" onClick={() => onCollapsedChange(!isCollapsed)}>{isCollapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={15} /> Collapse sidebar</>}</Button></div>
   </aside>;
 }

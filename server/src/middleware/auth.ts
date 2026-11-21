@@ -3,6 +3,7 @@ import { RoleName } from "@prisma/client";
 import { AppError } from "../utils/appError";
 import { verifyAccessToken } from "../services/authService";
 import { verifyAdminAccessToken } from "../services/adminAuthService";
+import type { PermissionCode } from "../config/permissions";
 
 export async function requireAuth(request: Request, _response: Response, next: NextFunction): Promise<void> {
   try {
@@ -29,6 +30,14 @@ export function authorizeRoles(...roles: RoleName[]) {
   return (request: Request, _response: Response, next: NextFunction): void => {
     if (!request.auth) return next(new AppError(401, "Authentication required", "AUTH_REQUIRED"));
     if (!roles.includes(request.auth.role)) return next(new AppError(403, "Insufficient permissions", "FORBIDDEN"));
+    next();
+  };
+}
+
+export function authorizePermissions(...permissions: PermissionCode[]) {
+  return (request: Request, _response: Response, next: NextFunction): void => {
+    if (!request.auth) return next(new AppError(401, "Authentication required", "AUTH_REQUIRED"));
+    if (!permissions.some((permission) => request.auth?.permissions.includes(permission))) return next(new AppError(403, "You do not have permission to perform this action", "PERMISSION_DENIED"));
     next();
   };
 }

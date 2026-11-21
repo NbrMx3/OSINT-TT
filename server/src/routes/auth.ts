@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { RoleName } from "@prisma/client";
 import { changePassword, currentUser, disableMfa, enableMfa, forceLogout, forgotPassword, login, logout, register, resetPasswordController, revokeSession, sessions, startMfaSetup, updateCurrentUser, verifyMfa } from "../controllers/authController";
 import { listTenantUsers } from "../controllers/adminController";
-import { authorizeRoles, optionalAuth, requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth } from "../middleware/auth";
+import { authorizePermissions } from "../middleware/auth";
+import { PERMISSIONS } from "../config/permissions";
 
 const router = Router();
 router.post("/register", register);
@@ -18,7 +19,7 @@ router.post("/mfa/disable", requireAuth, disableMfa);
 router.get("/sessions", requireAuth, sessions);
 router.delete("/sessions", requireAuth, revokeSession);
 router.post("/sessions/revoke-all", requireAuth, forceLogout);
-router.get("/tenant-users", requireAuth, authorizeRoles(RoleName.ADMINISTRATOR), listTenantUsers);
+router.get("/tenant-users", requireAuth, authorizePermissions(PERMISSIONS.MANAGE_USERS), listTenantUsers);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPasswordController);
 export default router;

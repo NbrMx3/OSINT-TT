@@ -28,11 +28,14 @@ import LandingPage from "./pages/LandingPage";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
+import UserManagementPage from "./pages/UserManagementPage";
+import InviteAcceptPage from "./pages/auth/InviteAcceptPage";
 
 function App() {
   return <BrowserRouter><AuthProvider><AdminProvider><Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/admin/login" element={<AdminLoginPage />} />
+    <Route path="/invite/:token" element={<InviteAcceptPage />} />
     <Route element={<PublicOnlyRoute />}>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -42,6 +45,7 @@ function App() {
     <Route element={<ProtectedRoute />}><Route element={<AppLayout />}>
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/users" element={<UserManagementPage />} />
       <Route path="/investigations" element={<InvestigationsPage />} />
       <Route path="/investigations/new" element={<NewInvestigationPage />} />
       <Route path="/investigations/:id/history" element={<InvestigationHistoryPage />} />
