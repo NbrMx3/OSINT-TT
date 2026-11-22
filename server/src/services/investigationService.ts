@@ -1,11 +1,11 @@
-import { InvestigationCategory, InvestigationStatus, Prisma, RoleName } from "@prisma/client";
+import { InvestigationCategory, InvestigationPriority, InvestigationStatus, Prisma, RoleName, TaskStatus } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { AppError } from "../utils/appError";
 import type { CreateInvestigationInput, InvestigationListQuery } from "../types/investigation";
 import { enqueueInvestigation } from "./investigationJobService";
 import { createHash } from "node:crypto";
 
-const detailInclude = { owner: { select: { id: true, name: true, email: true } }, targets: { orderBy: { createdAt: "asc" as const } }, jobs: { orderBy: { queuedAt: "desc" as const }, take: 10 }, notes: { include: { author: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } }, activityLogs: { orderBy: { createdAt: "desc" as const }, take: 50 }, _count: { select: { findings: true, entities: true, relationships: true } } } as const;
+const detailInclude = { owner: { select: { id: true, name: true, email: true } }, assignee: { select: { id: true, name: true, email: true } }, targets: { orderBy: { createdAt: "asc" as const } }, jobs: { orderBy: { queuedAt: "desc" as const }, take: 10 }, tasks: { include: { assignee: { select: { id: true, name: true, email: true } }, createdBy: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } }, notes: { include: { author: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } }, activityLogs: { orderBy: { createdAt: "desc" as const }, take: 50 }, _count: { select: { findings: true, entities: true, relationships: true, tasks: true } } } as const;
 
 export async function listInvestigations(tenantId: string, query: InvestigationListQuery) {
   const where: Prisma.InvestigationWhereInput = { tenantId, ...(query.status ? { status: query.status } : {}), ...(query.category ? { category: query.category } : {}), ...(query.search ? { OR: [{ name: { contains: query.search, mode: "insensitive" } }, { description: { contains: query.search, mode: "insensitive" } }] } : {}) };
@@ -36,7 +36,7 @@ export async function archiveInvestigation(id: string, tenantId: string, userId:
 
 export async function deleteInvestigation(id: string, tenantId: string, userId: string, role: RoleName) { const current = await getInvestigation(id, tenantId); if (current.ownerId !== userId && role !== RoleName.ADMINISTRATOR) throw new AppError(403, "Only the investigation owner or an administrator can delete it", "FORBIDDEN"); await prisma.investigation.delete({ where: { id } }); }
 
-export async function addAnalystNote(id: string, tenantId: string, authorId: string, content: string) { await getInvestigation(id, tenantId); return prisma.analystNote.create({ data: { tenantId, investigationId: id, authorId, content } }); }
+export async function addAnalystNote(id: string, tenantId: string, authorId: string, content: string, mentions: string[] = []) { await getInvestigation(id, tenantId); return prisma.$transaction(async (transaction) => { const note = await transaction.analystNote.create({ data: { tenantId, investigationId: id, authorId, content, mentions: mentions as Prisma.InputJsonValue } }); await transaction.activityLog.create({ data: { tenantId, userId: authorId, investigationId: id, action: "INVESTIGATION_COMMENT_ADDED", entityType: "AnalystNote", entityId: note.id, metadata: { mentions } } }); return note; }); }
 export async function getInvestigationHistory(id: string, tenantId: string) { await getInvestigation(id, tenantId); return prisma.activityLog.findMany({ where: { investigationId: id, tenantId }, orderBy: { createdAt: "desc" } }); }
 export async function getInvestigationResults(id: string, tenantId: string) { const investigation = await getInvestigation(id, tenantId); const findings = await prisma.finding.findMany({ where: { investigationId: id, tenantId }, include: { evidence: { orderBy: { collectedAt: "desc" } } }, orderBy: { createdAt: "desc" } }); return { results: investigation.results, findings }; }
 
@@ -52,6 +52,43 @@ export async function createInvestigationEvidence(id: string, tenantId: string, 
   const contentHash = input.content ? createHash("sha256").update(input.content).digest("hex") : undefined;
   const custodyEntry = { action: "COLLECTED", actorId: userId, timestamp: new Date().toISOString(), note: "Evidence captured and stored in the evidence vault" };
   return prisma.evidence.create({ data: { tenantId, investigationId: id, findingId: input.findingId, sourceUrl: input.sourceUrl, title: input.title, contentHash, collectedAt: capturedAt, screenshots: input.screenshots as Prisma.InputJsonValue | undefined, attachments: input.attachments as Prisma.InputJsonValue | undefined, provenance: input.provenance as Prisma.InputJsonValue | undefined, chainOfCustody: [custodyEntry] as Prisma.InputJsonValue, metadata: { createdById: userId } as Prisma.InputJsonValue } });
+}
+
+export async function updateInvestigationCollaboration(id: string, tenantId: string, userId: string, input: { status?: InvestigationStatus; priority?: InvestigationPriority; assigneeId?: string | null; deadline?: string | null }) {
+  await getInvestigation(id, tenantId);
+  if (input.assigneeId) {
+    const assignee = await prisma.user.findFirst({ where: { id: input.assigneeId, tenantId, isActive: true } });
+    if (!assignee) throw new AppError(404, "Assignee not found in this tenant", "ASSIGNEE_NOT_FOUND");
+  }
+  const updated = await prisma.investigation.update({ where: { id }, data: { ...(input.status ? { status: input.status } : {}), ...(input.priority ? { priority: input.priority } : {}), ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}), ...(input.deadline !== undefined ? { deadline: input.deadline ? new Date(input.deadline) : null } : {}) }, include: detailInclude });
+  await prisma.activityLog.create({ data: { tenantId, userId, investigationId: id, action: "INVESTIGATION_COLLABORATION_UPDATED", entityType: "Investigation", entityId: id, metadata: input as Prisma.InputJsonValue } });
+  return updated;
+}
+
+export async function listInvestigationCollaborators(tenantId: string) { return prisma.user.findMany({ where: { tenantId, isActive: true }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }); }
+
+export async function createInvestigationTask(id: string, tenantId: string, userId: string, input: { title: string; description?: string; status?: TaskStatus; priority?: InvestigationPriority; assigneeId?: string; dueAt?: string }) {
+  await getInvestigation(id, tenantId);
+  if (input.assigneeId) {
+    const assignee = await prisma.user.findFirst({ where: { id: input.assigneeId, tenantId, isActive: true } });
+    if (!assignee) throw new AppError(404, "Assignee not found in this tenant", "ASSIGNEE_NOT_FOUND");
+  }
+  const task = await prisma.investigationTask.create({ data: { tenantId, investigationId: id, title: input.title, description: input.description, status: input.status ?? TaskStatus.TODO, priority: input.priority ?? InvestigationPriority.MEDIUM, assigneeId: input.assigneeId, createdById: userId, dueAt: input.dueAt ? new Date(input.dueAt) : null, completedAt: input.status === TaskStatus.COMPLETED ? new Date() : null }, include: { assignee: { select: { id: true, name: true, email: true } }, createdBy: { select: { id: true, name: true } } } });
+  await prisma.activityLog.create({ data: { tenantId, userId, investigationId: id, action: "INVESTIGATION_TASK_CREATED", entityType: "InvestigationTask", entityId: task.id, metadata: { title: task.title, assigneeId: task.assigneeId } } });
+  return task;
+}
+
+export async function updateInvestigationTask(id: string, taskId: string, tenantId: string, userId: string, input: { title?: string; description?: string; status?: TaskStatus; priority?: InvestigationPriority; assigneeId?: string | null; dueAt?: string | null }) {
+  await getInvestigation(id, tenantId);
+  const existing = await prisma.investigationTask.findFirst({ where: { id: taskId, investigationId: id, tenantId } });
+  if (!existing) throw new AppError(404, "Task not found", "TASK_NOT_FOUND");
+  if (input.assigneeId) {
+    const assignee = await prisma.user.findFirst({ where: { id: input.assigneeId, tenantId, isActive: true } });
+    if (!assignee) throw new AppError(404, "Assignee not found in this tenant", "ASSIGNEE_NOT_FOUND");
+  }
+  const task = await prisma.investigationTask.update({ where: { id: taskId }, data: { ...(input.title !== undefined ? { title: input.title } : {}), ...(input.description !== undefined ? { description: input.description } : {}), ...(input.status !== undefined ? { status: input.status, completedAt: input.status === TaskStatus.COMPLETED ? new Date() : null } : {}), ...(input.priority !== undefined ? { priority: input.priority } : {}), ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}), ...(input.dueAt !== undefined ? { dueAt: input.dueAt ? new Date(input.dueAt) : null } : {}) }, include: { assignee: { select: { id: true, name: true, email: true } }, createdBy: { select: { id: true, name: true } } } });
+  await prisma.activityLog.create({ data: { tenantId, userId, investigationId: id, action: "INVESTIGATION_TASK_UPDATED", entityType: "InvestigationTask", entityId: taskId, metadata: input as Prisma.InputJsonValue } });
+  return task;
 }
 
 export async function appendEvidenceCustody(id: string, evidenceId: string, tenantId: string, userId: string, input: { action: string; note?: string }) {

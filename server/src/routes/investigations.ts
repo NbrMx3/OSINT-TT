@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { addCustody, addNote, archive, cancel, create, createEvidence, detail, evidence, history, list, remove, results, retry, start, update } from "../controllers/investigationController";
+import { addCustody, addNote, archive, cancel, collaboration, collaborators, create, createEvidence, createTask, detail, evidence, history, list, remove, results, retry, start, update, updateTask } from "../controllers/investigationController";
 import { authorizePermissions, requireAuth } from "../middleware/auth";
 import { PERMISSIONS } from "../config/permissions";
 
 const router = Router();
 router.use(requireAuth);
 router.get("/", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), list);
+router.get("/collaborators", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), collaborators);
 router.post("/", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), create);
 router.get("/:id/history", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), history);
 router.get("/:id/results", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), results);
@@ -17,6 +18,9 @@ router.post("/:id/cancel", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE
 router.post("/:id/retry", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), retry);
 router.post("/:id/archive", authorizePermissions(PERMISSIONS.DELETE_DATA), archive);
 router.post("/:id/notes", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), addNote);
+router.patch("/:id/collaboration", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), collaboration);
+router.post("/:id/tasks", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), createTask);
+router.patch("/:id/tasks/:taskId", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), updateTask);
 router.patch("/:id", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), update);
 router.delete("/:id", authorizePermissions(PERMISSIONS.DELETE_DATA), remove);
 router.get("/:id", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), detail);
