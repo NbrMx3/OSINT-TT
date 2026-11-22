@@ -273,6 +273,7 @@ model Investigation {
   relationships  Relationship[]
   graphLayouts   GraphLayout[]
   findings       Finding[]
+  evidence       Evidence[]
   notes          AnalystNote[]
   reports        Report[]
   activityLogs   ActivityLog[]
@@ -401,6 +402,7 @@ model IntelligenceSource {
 model Evidence {
   id          String       @id @default(cuid())
   tenantId    String
+  investigationId String?
   findingId   String?
   relationshipId String?
   domainResultId String?
@@ -414,9 +416,14 @@ model Evidence {
   title       String?
   contentHash String?
   storageKey  String?
+  screenshots Json?
+  attachments Json?
+  provenance  Json?
+  chainOfCustody Json?
   metadata    Json?
   collectedAt DateTime     @default(now())
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation Investigation? @relation(fields: [investigationId], references: [id], onDelete: Cascade)
   finding     Finding?     @relation(fields: [findingId], references: [id], onDelete: SetNull)
   relationship Relationship? @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
   domainResult DomainIntelligenceResult? @relation(fields: [domainResultId], references: [id], onDelete: Cascade)
@@ -427,6 +434,7 @@ model Evidence {
   socialResult SocialIntelligenceResult? @relation(fields: [socialResultId], references: [id], onDelete: Cascade)
   threatResult ThreatIntelligenceResult? @relation(fields: [threatResultId], references: [id], onDelete: Cascade)
   @@index([tenantId])
+  @@index([investigationId])
   @@index([findingId])
   @@index([relationshipId])
   @@index([domainResultId])

@@ -1,4 +1,4 @@
-import type { CreateInvestigationInput, Investigation, InvestigationCategory, InvestigationHistory, InvestigationListResponse, InvestigationResults, InvestigationStatus } from "../types/investigation";
+import type { CreateInvestigationInput, EvidenceRecord, Investigation, InvestigationCategory, InvestigationHistory, InvestigationListResponse, InvestigationResults, InvestigationStatus } from "../types/investigation";
 import { api } from "./api";
 
 export async function getInvestigations(params: { status?: InvestigationStatus; category?: InvestigationCategory; search?: string } = {}): Promise<InvestigationListResponse> { const response = await api.get<InvestigationListResponse>("/investigations", { params }); return response.data; }
@@ -13,3 +13,6 @@ export async function deleteInvestigation(id: string): Promise<void> { await api
 export async function addAnalystNote(id: string, content: string): Promise<void> { await api.post(`/investigations/${id}/notes`, { content }); }
 export async function getInvestigationHistory(id: string): Promise<{ history: InvestigationHistory[] }> { const response = await api.get<{ history: InvestigationHistory[] }>(`/investigations/${id}/history`); return response.data; }
 export async function getInvestigationResults(id: string): Promise<InvestigationResults> { const response = await api.get<InvestigationResults>(`/investigations/${id}/results`); return response.data; }
+export async function getInvestigationEvidence(id: string): Promise<{ evidence: EvidenceRecord[] }> { const response = await api.get<{ evidence: EvidenceRecord[] }>(`/investigations/${id}/evidence`); return response.data; }
+export async function createInvestigationEvidence(id: string, input: { sourceUrl?: string; title: string; findingId?: string; capturedAt?: string; content?: string; screenshots?: string[]; attachments?: Array<{ name: string; url?: string; sha256?: string }>; provenance?: Record<string, unknown> }): Promise<{ evidence: EvidenceRecord }> { const response = await api.post<{ evidence: EvidenceRecord }>(`/investigations/${id}/evidence`, input); return response.data; }
+export async function addEvidenceCustody(id: string, evidenceId: string, input: { action: string; note?: string }): Promise<{ evidence: EvidenceRecord }> { const response = await api.post<{ evidence: EvidenceRecord }>(`/investigations/${id}/evidence/${evidenceId}/custody`, input); return response.data; }

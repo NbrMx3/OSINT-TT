@@ -9,5 +9,8 @@ export interface AnalystNote { id: string; content: string; createdAt: string; a
 export interface ActivityLog { id: string; action: string; entityType: string | null; entityId: string | null; metadata: Record<string, unknown> | null; createdAt: string; }
 export type InvestigationHistory = ActivityLog;
 export interface InvestigationListResponse { items: Investigation[]; total: number; page: number; pageSize: number; pageCount: number; }
-export interface InvestigationResults { results: Record<string, unknown> | null; findings: Array<{ id: string; title: string; description: string | null; severity: string; status: string; createdAt: string }>; }
+export interface EvidenceAttachment { name: string; url?: string; sha256?: string }
+export interface EvidenceCustodyEntry { action: string; actorId: string; timestamp: string; note: string | null }
+export interface EvidenceRecord { id: string; title: string | null; sourceUrl: string | null; contentHash: string | null; screenshots: string[] | null; attachments: EvidenceAttachment[] | null; provenance: Record<string, unknown> | null; chainOfCustody: EvidenceCustodyEntry[] | null; collectedAt: string; findingId: string | null; finding: { id: string; title: string } | null }
+export interface InvestigationResults { results: Record<string, unknown> | null; findings: Array<{ id: string; title: string; description: string | null; severity: string; status: string; createdAt: string; evidence: EvidenceRecord[] }>; }
 export interface CreateInvestigationInput { title: string; description?: string; category: InvestigationCategory; targets: Array<{ type: TargetType; value: string; label?: string }>; selectedModules: string[]; }

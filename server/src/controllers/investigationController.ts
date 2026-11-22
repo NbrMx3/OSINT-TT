@@ -2,13 +2,15 @@ import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { InvestigationCategory, InvestigationStatus, RoleName, TargetType } from "@prisma/client";
 import { AppError } from "../utils/appError";
-import { addAnalystNote, archiveInvestigation, cancelInvestigation, createInvestigation, deleteInvestigation, getInvestigation, getInvestigationHistory, getInvestigationResults, listInvestigations, startInvestigation, updateInvestigation } from "../services/investigationService";
+import { addAnalystNote, appendEvidenceCustody, archiveInvestigation, cancelInvestigation, createInvestigation, createInvestigationEvidence, deleteInvestigation, getInvestigation, getInvestigationHistory, getInvestigationResults, getInvestigationEvidence, listInvestigations, startInvestigation, updateInvestigation } from "../services/investigationService";
 
 const targetSchema = z.object({ type: z.nativeEnum(TargetType), value: z.string().trim().min(1).max(500), label: z.string().trim().max(100).optional() });
 const createSchema = z.object({ title: z.string().trim().min(3).max(160), description: z.string().trim().max(5000).optional(), category: z.nativeEnum(InvestigationCategory), targets: z.array(targetSchema).min(1).max(100), selectedModules: z.array(z.string().trim().min(1).max(80)).max(30) });
 const updateSchema = createSchema.partial();
 const noteSchema = z.object({ content: z.string().trim().min(1).max(10000) });
 const deleteSchema = z.object({ confirmation: z.literal("DELETE") });
+const evidenceSchema = z.object({ sourceUrl: z.string().url().max(2000).optional(), title: z.string().trim().min(1).max(200), capturedAt: z.string().datetime().optional(), findingId: z.string().trim().min(1).optional(), content: z.string().max(500000).optional(), screenshots: z.array(z.string().url().max(2000)).max(20).optional(), attachments: z.array(z.object({ name: z.string().trim().min(1).max(255), url: z.string().url().max(2000).optional(), sha256: z.string().regex(/^[a-fA-F0-9]{64}$/).optional() })).max(50).optional(), provenance: z.record(z.string(), z.unknown()).optional() });
+const custodySchema = z.object({ action: z.string().trim().min(1).max(100), note: z.string().trim().max(2000).optional() });
 const querySchema = z.object({ status: z.nativeEnum(InvestigationStatus).optional(), category: z.nativeEnum(InvestigationCategory).optional(), search: z.string().trim().max(100).optional(), page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(100).default(20) });
 
 export async function list(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json(await listInvestigations(request.auth.tenantId, querySchema.parse(request.query))); } catch (error) { next(error); } }
@@ -23,6 +25,9 @@ export async function remove(request: Request, response: Response, next: NextFun
 export async function addNote(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.status(201).json({ note: await addAnalystNote(String(request.params.id), request.auth.tenantId, request.auth.userId, parse(noteSchema, request.body).content) }); } catch (error) { next(error); } }
 export async function history(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json({ history: await getInvestigationHistory(String(request.params.id), request.auth.tenantId) }); } catch (error) { next(error); } }
 export async function results(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json(await getInvestigationResults(String(request.params.id), request.auth.tenantId)); } catch (error) { next(error); } }
+export async function evidence(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json({ evidence: await getInvestigationEvidence(String(request.params.id), request.auth.tenantId) }); } catch (error) { next(error); } }
+export async function createEvidence(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.status(201).json({ evidence: await createInvestigationEvidence(String(request.params.id), request.auth.tenantId, request.auth.userId, parse(evidenceSchema, request.body)) }); } catch (error) { next(error); } }
+export async function addCustody(request: Request, response: Response, next: NextFunction): Promise<void> { try { assertAuth(request); response.json({ evidence: await appendEvidenceCustody(String(request.params.id), String(request.params.evidenceId), request.auth.tenantId, request.auth.userId, parse(custodySchema, request.body)) }); } catch (error) { next(error); } }
 
 function assertAuth(request: Request): asserts request is Request & { auth: NonNullable<Request["auth"]> } { if (!request.auth) throw new AppError(401, "Authentication required", "AUTH_REQUIRED"); }
 function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> { const result = schema.safeParse(value); if (!result.success) throw new AppError(400, result.error.issues.map((issue) => issue.message).join("; "), "VALIDATION_ERROR"); return result.data; }

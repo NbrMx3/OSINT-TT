@@ -3,6 +3,7 @@ import { prisma } from "../config/prisma";
 import { AppError } from "../utils/appError";
 import type { CreateInvestigationInput, InvestigationListQuery } from "../types/investigation";
 import { enqueueInvestigation } from "./investigationJobService";
+import { createHash } from "node:crypto";
 
 const detailInclude = { owner: { select: { id: true, name: true, email: true } }, targets: { orderBy: { createdAt: "asc" as const } }, jobs: { orderBy: { queuedAt: "desc" as const }, take: 10 }, notes: { include: { author: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } }, activityLogs: { orderBy: { createdAt: "desc" as const }, take: 50 }, _count: { select: { findings: true, entities: true, relationships: true } } } as const;
 
@@ -37,4 +38,27 @@ export async function deleteInvestigation(id: string, tenantId: string, userId: 
 
 export async function addAnalystNote(id: string, tenantId: string, authorId: string, content: string) { await getInvestigation(id, tenantId); return prisma.analystNote.create({ data: { tenantId, investigationId: id, authorId, content } }); }
 export async function getInvestigationHistory(id: string, tenantId: string) { await getInvestigation(id, tenantId); return prisma.activityLog.findMany({ where: { investigationId: id, tenantId }, orderBy: { createdAt: "desc" } }); }
-export async function getInvestigationResults(id: string, tenantId: string) { const investigation = await getInvestigation(id, tenantId); const findings = await prisma.finding.findMany({ where: { investigationId: id, tenantId }, orderBy: { createdAt: "desc" } }); return { results: investigation.results, findings }; }
+export async function getInvestigationResults(id: string, tenantId: string) { const investigation = await getInvestigation(id, tenantId); const findings = await prisma.finding.findMany({ where: { investigationId: id, tenantId }, include: { evidence: { orderBy: { collectedAt: "desc" } } }, orderBy: { createdAt: "desc" } }); return { results: investigation.results, findings }; }
+
+export async function getInvestigationEvidence(id: string, tenantId: string) { await getInvestigation(id, tenantId); return prisma.evidence.findMany({ where: { investigationId: id, tenantId }, include: { finding: { select: { id: true, title: true } } }, orderBy: { collectedAt: "desc" } }); }
+
+export async function createInvestigationEvidence(id: string, tenantId: string, userId: string, input: { sourceUrl?: string; title: string; capturedAt?: string; findingId?: string; content?: string; screenshots?: string[]; attachments?: Array<{ name: string; url?: string; sha256?: string }>; provenance?: Record<string, unknown>; }) {
+  await getInvestigation(id, tenantId);
+  if (input.findingId) {
+    const finding = await prisma.finding.findFirst({ where: { id: input.findingId, investigationId: id, tenantId } });
+    if (!finding) throw new AppError(404, "Finding not found in this investigation", "FINDING_NOT_FOUND");
+  }
+  const capturedAt = input.capturedAt ? new Date(input.capturedAt) : new Date();
+  const contentHash = input.content ? createHash("sha256").update(input.content).digest("hex") : undefined;
+  const custodyEntry = { action: "COLLECTED", actorId: userId, timestamp: new Date().toISOString(), note: "Evidence captured and stored in the evidence vault" };
+  return prisma.evidence.create({ data: { tenantId, investigationId: id, findingId: input.findingId, sourceUrl: input.sourceUrl, title: input.title, contentHash, collectedAt: capturedAt, screenshots: input.screenshots as Prisma.InputJsonValue | undefined, attachments: input.attachments as Prisma.InputJsonValue | undefined, provenance: input.provenance as Prisma.InputJsonValue | undefined, chainOfCustody: [custodyEntry] as Prisma.InputJsonValue, metadata: { createdById: userId } as Prisma.InputJsonValue } });
+}
+
+export async function appendEvidenceCustody(id: string, evidenceId: string, tenantId: string, userId: string, input: { action: string; note?: string }) {
+  await getInvestigation(id, tenantId);
+  const evidence = await prisma.evidence.findFirst({ where: { id: evidenceId, investigationId: id, tenantId } });
+  if (!evidence) throw new AppError(404, "Evidence not found", "EVIDENCE_NOT_FOUND");
+  const existing = Array.isArray(evidence.chainOfCustody) ? evidence.chainOfCustody : [];
+  const entry = { action: input.action, actorId: userId, timestamp: new Date().toISOString(), note: input.note ?? null };
+  return prisma.evidence.update({ where: { id: evidenceId }, data: { chainOfCustody: [...existing, entry] as Prisma.InputJsonValue } });
+}

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addNote, archive, cancel, create, detail, history, list, remove, results, retry, start, update } from "../controllers/investigationController";
+import { addCustody, addNote, archive, cancel, create, createEvidence, detail, evidence, history, list, remove, results, retry, start, update } from "../controllers/investigationController";
 import { authorizePermissions, requireAuth } from "../middleware/auth";
 import { PERMISSIONS } from "../config/permissions";
 
@@ -9,6 +9,9 @@ router.get("/", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), list);
 router.post("/", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), create);
 router.get("/:id/history", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), history);
 router.get("/:id/results", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), results);
+router.get("/:id/evidence", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), evidence);
+router.post("/:id/evidence", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), createEvidence);
+router.post("/:id/evidence/:evidenceId/custody", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), addCustody);
 router.post("/:id/start", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), start);
 router.post("/:id/cancel", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), cancel);
 router.post("/:id/retry", authorizePermissions(PERMISSIONS.COLLECT_INTELLIGENCE), retry);
