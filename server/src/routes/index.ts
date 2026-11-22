@@ -19,6 +19,7 @@ import adminRoutes from "./admin";
 import invitationRoutes from "./invitations";
 import searchRoutes from "./search.routes";
 import realtimeRoutes from "./realtime.routes";
+import dashboardRoutes from "./dashboard.routes";
 
 const router = Router();
 router.get("/health", getHealth);
@@ -38,5 +39,5 @@ router.use("/graph", graphRoutes);
 router.use("/reports", reportRoutes);
 router.use("/search", searchRoutes);
 router.use("/realtime", realtimeRoutes);
-router.get("/dashboard", requireAuth, authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), getDashboard);
+router.use("/dashboard", dashboardRoutes);
 export default router;

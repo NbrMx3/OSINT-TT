@@ -1,13 +1,15 @@
 import { prisma } from "../config/prisma";
 
-export async function getAnalytics(tenantId: string) {
+export async function getAnalytics(tenantId: string, filters: { from?: string; to?: string; tenantId?: string } = {}) {
+  const effectiveTenantId = filters.tenantId || tenantId;
+  const dateFilter = (field: "createdAt" | "collectedAt") => filters.from || filters.to ? { [field]: { ...(filters.from ? { gte: new Date(filters.from) } : {}), ...(filters.to ? { lte: new Date(filters.to) } : {}) } } : {};
   const [investigations, findings, entities, activity, sources, threatResults] = await Promise.all([
-    prisma.investigation.findMany({ where: { tenantId }, select: { id: true, status: true, category: true, createdAt: true, completedAt: true } }),
-    prisma.finding.findMany({ where: { tenantId }, select: { severity: true, status: true, createdAt: true } }),
-    prisma.entity.count({ where: { tenantId } }),
-    prisma.activityLog.findMany({ where: { tenantId }, select: { id: true, action: true, createdAt: true, user: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" }, take: 100 }),
-    prisma.intelligenceSource.findMany({ where: { tenantId }, select: { id: true, name: true, type: true, status: true, lastSyncAt: true }, orderBy: { updatedAt: "desc" } }),
-    prisma.threatIntelligenceResult.findMany({ where: { tenantId }, select: { data: true, collectedAt: true } }),
+    prisma.investigation.findMany({ where: { tenantId: effectiveTenantId, ...dateFilter("createdAt") }, select: { id: true, status: true, category: true, createdAt: true, completedAt: true } }),
+    prisma.finding.findMany({ where: { tenantId: effectiveTenantId, ...dateFilter("createdAt") }, select: { severity: true, status: true, createdAt: true } }),
+    prisma.entity.count({ where: { tenantId: effectiveTenantId, ...dateFilter("createdAt") } }),
+    prisma.activityLog.findMany({ where: { tenantId: effectiveTenantId, ...dateFilter("createdAt") }, select: { id: true, action: true, createdAt: true, user: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" }, take: 100 }),
+    prisma.intelligenceSource.findMany({ where: { tenantId: effectiveTenantId }, select: { id: true, name: true, type: true, status: true, lastSyncAt: true }, orderBy: { updatedAt: "desc" } }),
+    prisma.threatIntelligenceResult.findMany({ where: { tenantId: effectiveTenantId, ...dateFilter("collectedAt") }, select: { data: true, collectedAt: true } }),
   ]);
   const completed = investigations.filter((item) => item.status === "COMPLETED").length;
   const active = investigations.filter((item) => item.status === "RUNNING" || item.status === "PENDING").length;
