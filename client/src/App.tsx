@@ -30,6 +30,7 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import InviteAcceptPage from "./pages/auth/InviteAcceptPage";
+import AdvancedSearchPage from "./pages/AdvancedSearchPage";
 
 function App() {
   return <BrowserRouter><AuthProvider><AdminProvider><Routes>
@@ -61,6 +62,7 @@ function App() {
       <Route path="/social" element={<IntelligenceModulePage />} />
       <Route path="/threats" element={<IntelligenceModulePage />} />
       <Route path="/graph" element={<GraphAnalysisPage />} />
+      <Route path="/search" element={<AdvancedSearchPage />} />
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/settings" element={<IntelligenceModulePage />} />
       <Route path="*" element={<NotFoundPage />} />
