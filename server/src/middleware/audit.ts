@@ -1,8 +1,9 @@
 import crypto from "node:crypto";
-import type { RequestHandler } from "express";
+import type { Request, RequestHandler } from "express";
 import { appendAuditLog } from "../services/auditService";
 
 export const auditRequest: RequestHandler = (request, response, next) => {
+  const startedAt = process.hrtime.bigint();
   const requestId = request.header("x-request-id")?.trim() || crypto.randomUUID();
   request.requestId = requestId;
   response.setHeader("x-request-id", requestId);
@@ -23,6 +24,12 @@ export const auditRequest: RequestHandler = (request, response, next) => {
         path: request.path,
         statusCode: response.statusCode,
         outcome: response.statusCode >= 400 ? "failure" : "success",
+        durationMs: Number(process.hrtime.bigint() - startedAt) / 1_000_000,
+        rateLimit: (request as Request & { rateLimit?: { used?: number; limit?: number; remaining?: number } }).rateLimit ? {
+          used: (request as Request & { rateLimit?: { used?: number; limit?: number; remaining?: number } }).rateLimit?.used,
+          limit: (request as Request & { rateLimit?: { used?: number; limit?: number; remaining?: number } }).rateLimit?.limit,
+          remaining: (request as Request & { rateLimit?: { used?: number; limit?: number; remaining?: number } }).rateLimit?.remaining,
+        } : undefined,
       },
       ipAddress: request.ip || request.socket.remoteAddress || undefined,
       userAgent: request.get("user-agent") ?? undefined,

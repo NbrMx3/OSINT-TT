@@ -12,7 +12,7 @@ import threatRoutes from "./threat.routes";
 import graphRoutes from "./graph.routes";
 import reportRoutes from "./report.routes";
 import { getDashboard } from "../controllers/dashboardController";
-import { getHealth } from "../controllers/healthController";
+import { getHealth, getSystemHealthCenter } from "../controllers/healthController";
 import { authorizePermissions, requireAuth } from "../middleware/auth";
 import { PERMISSIONS } from "../config/permissions";
 import adminRoutes from "./admin";
@@ -23,6 +23,7 @@ import dashboardRoutes from "./dashboard.routes";
 
 const router = Router();
 router.get("/health", getHealth);
+router.get("/system-health", requireAuth, authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), getSystemHealthCenter);
 router.use("/auth", authRoutes);
 router.use("/invitations", invitationRoutes);
 router.use("/admin", adminRoutes);

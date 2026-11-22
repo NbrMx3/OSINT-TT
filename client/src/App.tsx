@@ -30,6 +30,7 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import InviteAcceptPage from "./pages/auth/InviteAcceptPage";
+import SystemHealthPage from "./pages/SystemHealthPage";
 import AdvancedSearchPage from "./pages/AdvancedSearchPage";
 
 function App() {
@@ -65,6 +66,7 @@ function App() {
       <Route path="/search" element={<AdvancedSearchPage />} />
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/settings" element={<IntelligenceModulePage />} />
+      <Route path="/system-health" element={<SystemHealthPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Route></Route>
     <Route element={<AdminProtectedRoute />}><Route element={<AdminLayout />}>
