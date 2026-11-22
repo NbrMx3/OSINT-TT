@@ -1,6 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { create, detail, exportData, list, pdf, remove } from "../controllers/report.controller";
+import { create, detail, exportData, list, pdf, remove, scheduleCreate, scheduleDelete, scheduleList, scheduleUpdate } from "../controllers/report.controller";
 import { requireAuth } from "../middleware/auth";
 import { authorizePermissions } from "../middleware/auth";
 import { PERMISSIONS } from "../config/permissions";
@@ -8,6 +8,10 @@ import { PERMISSIONS } from "../config/permissions";
 const router = Router();
 router.use(rateLimit({ windowMs: 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false }), requireAuth);
 router.get("/", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), list);
+router.get("/schedules", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), scheduleList);
+router.post("/schedules", authorizePermissions(PERMISSIONS.EXPORT_REPORTS), scheduleCreate);
+router.patch("/schedules/:id", authorizePermissions(PERMISSIONS.EXPORT_REPORTS), scheduleUpdate);
+router.delete("/schedules/:id", authorizePermissions(PERMISSIONS.DELETE_DATA), scheduleDelete);
 router.post("/", authorizePermissions(PERMISSIONS.EXPORT_REPORTS), create);
 router.get("/:id", authorizePermissions(PERMISSIONS.VIEW_WORKSPACE), detail);
 router.get("/:id/pdf", authorizePermissions(PERMISSIONS.EXPORT_REPORTS), pdf);

@@ -2,6 +2,7 @@ import app from "./app";
 import { verifyDatabaseConnection } from "./config/database";
 import { env } from "./config/env";
 import { prisma } from "./config/prisma";
+import { runDueReportSchedules } from "./services/report.service";
 
 async function purgeExpiredSocialResults(): Promise<void> {
   const cutoff = new Date(Date.now() - env.retentionDays * 24 * 60 * 60 * 1000);
@@ -17,6 +18,11 @@ async function startServer(): Promise<void> {
     void purgeExpiredSocialResults().catch((error: unknown) => console.error("Unable to purge expired social results", error));
   }, 60 * 60 * 1000);
   retentionTimer.unref();
+  const reportScheduleTimer = setInterval(() => {
+    void runDueReportSchedules().catch((error: unknown) => console.error("Unable to process scheduled reports", error));
+  }, 60 * 1000);
+  reportScheduleTimer.unref();
+  void runDueReportSchedules().catch((error: unknown) => console.error("Unable to process scheduled reports", error));
   app.listen(env.port, () => {
     console.log(`OSINT-X API running at http://localhost:${env.port}`);
     console.log("PostgreSQL connection verified");

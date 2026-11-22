@@ -2,9 +2,10 @@ import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { ReportStatus } from "@prisma/client";
 import { AppError } from "../utils/appError";
-import { deleteReport, exportReport, generateReport, getReport, getReportPdf, listReports } from "../services/report.service";
+import { createReportSchedule, deleteReport, deleteReportSchedule, exportReport, generateReport, getReport, getReportPdf, listReports, listReportSchedules, updateReportSchedule } from "../services/report.service";
 
-const generationSchema = z.object({ investigationId: z.string().min(1), title: z.string().trim().max(200).optional() });
+const generationSchema = z.object({ investigationId: z.string().min(1), title: z.string().trim().max(200).optional(), template: z.enum(["STANDARD", "EXECUTIVE", "TECHNICAL"]).optional(), branding: z.record(z.string(), z.unknown()).optional() });
+const scheduleSchema = z.object({ investigationId: z.string().min(1), name: z.string().trim().min(1).max(100), template: z.enum(["STANDARD", "EXECUTIVE", "TECHNICAL"]).optional(), frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).optional(), titleTemplate: z.string().trim().max(200).optional(), branding: z.record(z.string(), z.unknown()).optional(), enabled: z.boolean().optional() });
 
 function auth(request: Request) { if (!request.auth) throw new AppError(401, "Authentication required", "AUTH_REQUIRED"); return request.auth; }
 
@@ -17,5 +18,9 @@ export async function list(request: Request, response: Response, next: NextFunct
 export async function detail(request: Request, response: Response, next: NextFunction): Promise<void> { try { response.json({ report: await getReport(auth(request).tenantId, String(request.params.id)) }); } catch (error) { next(error); } }
 export async function pdf(request: Request, response: Response, next: NextFunction): Promise<void> { try { const report = await getReportPdf(auth(request).tenantId, String(request.params.id)); response.type("application/pdf").attachment(`${safeFilename(report.title)}.pdf`).send(report.pdfData); } catch (error) { next(error); } }
 export async function exportData(request: Request, response: Response, next: NextFunction): Promise<void> { try { const format = request.query.format === "csv" ? "csv" : "json"; const file = await exportReport(auth(request).tenantId, String(request.params.id), format); response.type(file.contentType).attachment(file.filename).send(file.body); } catch (error) { next(error); } }
+export async function scheduleList(request: Request, response: Response, next: NextFunction): Promise<void> { try { const current = auth(request); response.json({ schedules: await listReportSchedules(current.tenantId) }); } catch (error) { next(error); } }
+export async function scheduleCreate(request: Request, response: Response, next: NextFunction): Promise<void> { try { const current = auth(request); const parsed = scheduleSchema.safeParse(request.body); if (!parsed.success) throw new AppError(400, parsed.error.issues.map((issue) => issue.message).join("; "), "VALIDATION_ERROR"); response.status(201).json({ schedule: await createReportSchedule({ ...parsed.data, tenantId: current.tenantId, createdById: current.userId }) }); } catch (error) { next(error); } }
+export async function scheduleUpdate(request: Request, response: Response, next: NextFunction): Promise<void> { try { const current = auth(request); const parsed = scheduleSchema.partial().safeParse(request.body); if (!parsed.success) throw new AppError(400, parsed.error.issues.map((issue) => issue.message).join("; "), "VALIDATION_ERROR"); response.json({ schedule: await updateReportSchedule(current.tenantId, String(request.params.id), parsed.data) }); } catch (error) { next(error); } }
+export async function scheduleDelete(request: Request, response: Response, next: NextFunction): Promise<void> { try { const current = auth(request); await deleteReportSchedule(current.tenantId, String(request.params.id)); response.status(204).send(); } catch (error) { next(error); } }
 export async function remove(request: Request, response: Response, next: NextFunction): Promise<void> { try { await deleteReport(auth(request).tenantId, String(request.params.id)); response.status(204).send(); } catch (error) { next(error); } }
 function safeFilename(value: string) { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "osint-x-report"; }

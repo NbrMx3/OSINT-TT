@@ -140,6 +140,7 @@ model Tenant {
   threatResults     ThreatIntelligenceResult[]
   invitations       UserInvitation[]
   savedSearches     SavedSearch[]
+  reportSchedules   ReportSchedule[]
 }
 
 model Role {
@@ -195,6 +196,7 @@ model User {
   createdFindings       Finding[]       @relation("FindingCreator")
   analystNotes          AnalystNote[]
   authoredReports       Report[]         @relation("ReportAuthor")
+  reportSchedules       ReportSchedule[] @relation("ReportScheduleCreator")
   activityLogs          ActivityLog[]
   apiConfigurations     ApiConfiguration[] @relation("ApiConfigurationOwner")
   sessions              UserSession[]
@@ -302,6 +304,7 @@ model Investigation {
   tasks          InvestigationTask[]
   notes          AnalystNote[]
   reports        Report[]
+  reportSchedules ReportSchedule[]
   activityLogs   ActivityLog[]
   jobs           InvestigationJob[]
   domainResults  DomainIntelligenceResult[]
@@ -651,6 +654,10 @@ model Report {
   generatedAt    DateTime?
   investigationDate DateTime?
   scope          Json?
+  template       String        @default("STANDARD")
+  branding       Json?
+  executiveSummary String?
+  evidenceAppendix Json?
   searchText     String?
   status         ReportStatus  @default(DRAFT)
   createdAt      DateTime      @default(now())
@@ -660,6 +667,27 @@ model Report {
   author         User          @relation("ReportAuthor", fields: [authorId], references: [id])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
+}
+
+model ReportSchedule {
+  id             String   @id @default(cuid())
+  tenantId       String
+  investigationId String
+  createdById    String
+  name           String
+  template       String   @default("STANDARD")
+  frequency      String   @default("WEEKLY")
+  enabled        Boolean  @default(true)
+  titleTemplate  String?
+  branding       Json?
+  nextRunAt      DateTime
+  lastRunAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investigation  Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  createdBy      User     @relation("ReportScheduleCreator", fields: [createdById], references: [id])
+  @@index([tenantId, enabled, nextRunAt])
 }
 
 model SavedSearch {
