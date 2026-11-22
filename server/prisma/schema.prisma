@@ -139,6 +139,7 @@ model Tenant {
   socialResults     SocialIntelligenceResult[]
   threatResults     ThreatIntelligenceResult[]
   invitations       UserInvitation[]
+  savedSearches     SavedSearch[]
 }
 
 model Role {
@@ -198,6 +199,7 @@ model User {
   apiConfigurations     ApiConfiguration[] @relation("ApiConfigurationOwner")
   sessions              UserSession[]
   sentInvitations       UserInvitation[] @relation("InvitationSender")
+  savedSearches         SavedSearch[]
   @@index([tenantId])
 }
 
@@ -658,6 +660,22 @@ model Report {
   author         User          @relation("ReportAuthor", fields: [authorId], references: [id])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
+}
+
+model SavedSearch {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  name        String
+  query       String?
+  filters     Json?
+  sort        String   @default("UPDATED_DESC")
+  isPinned    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([tenantId, userId, isPinned])
 }
 
 model ActivityLog {
